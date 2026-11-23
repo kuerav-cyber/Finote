@@ -44,7 +44,11 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
 .out{color:#dc2626;font-weight:700}
 .pill-ro{font-size:12px;padding:4px 10px;border-radius:999px;background:#e0f2fe;color:#0284c7;font-weight:700}
 .badge-lock{font-size:11px;padding:2px 7px;border-radius:999px;background:#fee2e2;color:#b91c1c;font-weight:700}
+.notif-banner{background:#e0f2fe;border:1px solid #7dd3fc;color:#0c4a6e;border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:13px}
+body.theme-dark .notif-banner{background:#1e3a5f;border-color:#38bdf8;color:#e0f2fe}
 .receipt-preview{max-width:100%;max-height:360px;border-radius:12px;display:block;margin:10px auto 0;border:1px solid var(--border)}
+.chart-wrap{width:100%;height:190px;margin-top:10px;border:1px solid var(--border);border-radius:12px;padding:8px;background:var(--card)}
+.chart-canvas{width:100%;height:100%;display:block}
 .hide{display:none!important}
 </style>
 </head>
@@ -82,6 +86,13 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
   </div>
 
   <div id="appBox" class="hide">
+    <div id="monthNotifBanner" class="notif-banner hide">
+      <div class="between" style="gap:10px">
+        <span id="monthNotifText"></span>
+        <button type="button" id="btnOpenMonthNotif" class="btn-sm" onclick="openMonthModal()">Update</button>
+      </div>
+    </div>
+
     <div class="box" style="padding:12px 16px">
       <div class="between">
         <div class="row-flex">
@@ -179,10 +190,22 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
     <div class="box">
       <div class="between">
         <h3 id="hAwalBln" style="margin:0">Saldo Awal Bulan</h3>
-        <input id="awalBln" type="month" style="width:auto;margin:0;padding:6px 10px;font-size:13px">
+        <input id="awalBln" type="month" onchange="muatFormAwal()" style="width:auto;margin:0;padding:6px 10px;font-size:13px">
       </div>
-      <input id="awalNominal" type="number" readonly>
+      <input id="awalNominal" type="number" step="any" placeholder="0">
+      <button type="button" id="btnSimpanAwal" class="btn-sec" style="margin-top:8px" onclick="simpanSaldoAwal()">Simpan Saldo Awal</button>
       <div id="awalLockNote" class="small" style="margin-top:6px"></div>
+    </div>
+
+    <div class="box">
+      <div class="between">
+        <h3 id="hMonthChart" style="margin:0">Grafik Akhir Bulan</h3>
+        <span id="chartTrendBadge" class="pill-ro">-</span>
+      </div>
+      <div id="chartSummary" class="small" style="margin-top:6px"></div>
+      <div class="chart-wrap">
+        <canvas id="monthEndChart" class="chart-canvas"></canvas>
+      </div>
     </div>
 
     <div class="box">
@@ -250,6 +273,8 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
 <div id="monthModal" class="modal-bg hide">
   <div class="modal-card">
     <h3 style="margin:0 0 6px"><span id="lblMonthModal">Awal Bulan</span> <span id="modalBlnLbl"></span></h3>
+    <div id="modalCarryInfo" class="small" style="margin-bottom:8px"></div>
+    <input id="modalAwalVal" type="number" step="any" placeholder="Saldo awal / tambahan bulan ini (Rp)">
     <input id="modalInVal" type="number" min="0" placeholder="Pemasukan awal bulan (Rp)">
     <select id="modalInAkun">
       <option value="BCA">BCA</option>
@@ -280,8 +305,8 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
 const CLOUD_BIN_ID="";
 const CLOUD_API_KEY="";
 
-const K_ACC="fn_acc_v5",K_TX="fn_tx_v5",K_CLS="fn_cls_v5",K_AWAL="fn_awal_v5",K_WALLET="fn_wallet_v5",K_THEME="fn_theme_v5",K_PROMPT_BLN="fn_prompt_bln_v5",K_LANG="fn_lang_v5";
-const S_ACTIVE="fn_session_active_v5",S_LAST="fn_session_last_v5";
+const K_ACC="fn_acc_v7",K_TX="fn_tx_v7",K_CLS="fn_cls_v7",K_AWAL="fn_awal_v7",K_AWAL_LOCK="fn_awal_lock_v7",K_WALLET="fn_wallet_v7",K_THEME="fn_theme_v7",K_PROMPT_BLN="fn_prompt_bln_v7",K_LANG="fn_lang_v7";
+const S_ACTIVE="fn_session_active_v7",S_LAST="fn_session_last_v7";
 const IDLE_LIMIT_MS=30*60*1000;
 const EMPTY_WALLET={BNI:0,BCA:0,Mandiri:0,"Other Bank":0,"E-Wallet":0,Cash:0};
 
@@ -300,13 +325,23 @@ const I18N={
     viewOnly:"Lihat Data Pemasukan & Pengeluaran",readOnly:"Mode baca saja",
     allOpt:"Semua",incShort:"Pemasukan",expShort:"Pengeluaran",
     resetView:"Tampilkan Semua Tanggal",txList:"Riwayat Transaksi",
-    awalBln:"Saldo Awal Bulan",closing:"Daily Closing (23:59:59)",closeBtn:"Tutup Hari Ini",
+    awalBln:"Saldo Awal Bulan",saveAwal:"Simpan Saldo Awal",
+    awalDayOnly:"Saldo awal hanya bisa diupdate pada tanggal 1 setiap bulan.",
+    awalFixedLock:"Saldo awal sudah terupdate dan fiks terkunci sampai awal bulan berikutnya.",
+    awalPrevCarry:"Sisa saldo akhir bulan lalu: ",
+    monthNotifTitle:"Notifikasi Awal Bulan: Silakan update saldo awal untuk periode ",
+    updateBtn:"Update",
+    confirmAwalLock:"Setelah disimpan, saldo awal bulan ini fiks tidak dapat diubah sampai awal bulan berikutnya. Lanjutkan?",
+    monthChart:"Grafik Akhir Bulan",
+    trendUp:"Menaik (Bertambah)",trendDown:"Menurun (Berkurang)",trendFlat:"Stabil",
+    chartStart:"Awal",chartEnd:"Akhir",
+    closing:"Daily Closing (23:59:59)",closeBtn:"Tutup Hari Ini",
     confirmClose:"Yakin ingin melakukan Daily Closing untuk hari ini? (Ya / Tidak)",
     closeDone:"Closing selesai.",locked:"Terkunci",noData:"Tidak ada data.",noTx:"Belum ada transaksi.",noClose:"Belum ada closing.",
     menu:"Menu",profTheme:"Profil & Warna Latar",save:"Simpan",saved:"Tersimpan.",
     dbSaldo:"Database Saldo",saveDb:"Simpan Saldo",
     syncBackup:"Sinkronisasi & Backup",syncCloud:"Sinkronkan Cloud",exportJson:"Export (.json)",logout:"Keluar",
-    monthModal:"Awal Bulan",monthInPh:"Pemasukan awal bulan (Rp)",later:"Nanti",
+    monthModal:"Awal Bulan",monthAwalPh:"Saldo awal / tambahan bulan ini (Rp)",monthInPh:"Pemasukan awal bulan (Rp)",later:"Nanti",
     synced:"Tersinkron ",saving:"Menyimpan...",syncing:"Menyinkronkan...",localOnly:"Lokal saja",
     sessionExpired:"Sesi berakhir (30 menit).",wrongCreds:"Username atau password salah.",
     fillCreds:"Lengkapi username dan password.",minUser:"Username minimal 3 huruf.",minPass:"Password minimal 4 karakter.",
@@ -326,13 +361,23 @@ const I18N={
     viewOnly:"View Income & Expense",readOnly:"Read only",
     allOpt:"All",incShort:"Income",expShort:"Expense",
     resetView:"Show All Dates",txList:"Transaction History",
-    awalBln:"Monthly Opening Balance",closing:"Daily Closing (23:59:59)",closeBtn:"Close Today",
+    awalBln:"Monthly Opening Balance",saveAwal:"Save Opening Balance",
+    awalDayOnly:"Opening balance can only be updated on the 1st of each month.",
+    awalFixedLock:"Opening balance is updated and permanently locked until next month's 1st.",
+    awalPrevCarry:"Previous month closing balance: ",
+    monthNotifTitle:"Month-Start Notification: Please update opening balance for ",
+    updateBtn:"Update",
+    confirmAwalLock:"Once saved, this month's opening balance cannot be changed until next month's 1st. Continue?",
+    monthChart:"Month-End Chart",
+    trendUp:"Increasing (Up)",trendDown:"Decreasing (Down)",trendFlat:"Flat",
+    chartStart:"Start",chartEnd:"End",
+    closing:"Daily Closing (23:59:59)",closeBtn:"Close Today",
     confirmClose:"Are you sure you want to run Daily Closing for today? (Yes / No)",
     closeDone:"Closing completed.",locked:"Locked",noData:"No data.",noTx:"No transactions yet.",noClose:"No closing yet.",
     menu:"Menu",profTheme:"Profile & Background",save:"Save",saved:"Saved.",
     dbSaldo:"Balance Database",saveDb:"Save Balance",
     syncBackup:"Sync & Backup",syncCloud:"Sync Cloud",exportJson:"Export (.json)",logout:"Sign Out",
-    monthModal:"Month Start",monthInPh:"Month opening income (Rp)",later:"Later",
+    monthModal:"Month Start",monthAwalPh:"Opening / added balance this month (Rp)",monthInPh:"Month opening income (Rp)",later:"Later",
     synced:"Synced ",saving:"Saving...",syncing:"Syncing...",localOnly:"Local only",
     sessionExpired:"Session expired (30 mins).",wrongCreds:"Incorrect username or password.",
     fillCreds:"Enter username and password.",minUser:"Username min 3 chars.",minPass:"Password min 4 chars.",
@@ -379,6 +424,9 @@ function applyLangUI(){
   document.getElementById("btnResetView").textContent=t("resetView");
   document.getElementById("hTxList").textContent=t("txList");
   document.getElementById("hAwalBln").textContent=t("awalBln");
+  document.getElementById("btnSimpanAwal").textContent=t("saveAwal");
+  document.getElementById("btnOpenMonthNotif").textContent=t("updateBtn");
+  document.getElementById("hMonthChart").textContent=t("monthChart");
   document.getElementById("hClosing").textContent=t("closing");
   document.getElementById("btnClosing").textContent=t("closeBtn");
   document.getElementById("drawerTitle").textContent=t("menu");
@@ -393,11 +441,13 @@ function applyLangUI(){
   document.getElementById("btnExportJson").textContent=t("exportJson");
   document.getElementById("btnLogout").textContent=t("logout");
   document.getElementById("lblMonthModal").textContent=t("monthModal");
+  document.getElementById("modalAwalVal").placeholder=t("monthAwalPh");
   document.getElementById("modalInVal").placeholder=t("monthInPh");
   document.getElementById("btnSaveMonth").textContent=t("save");
   document.getElementById("btnLaterMonth").textContent=t("later");
   initAuth();
   if(!document.getElementById("appBox").classList.contains("hide")){
+    updateMonthNotifBanner();
     muatFormAwal();
     cekLockForm();
     renderAll();
@@ -420,14 +470,62 @@ const getAcc=()=>loadJson(K_ACC,null);
 const getTx=()=>loadJson(K_TX,[]);
 const getCls=()=>loadJson(K_CLS,[]);
 const getAwalMap=()=>loadJson(K_AWAL,{});
+const getAwalLockMap=()=>loadJson(K_AWAL_LOCK,{});
 const getWallet=()=>{const raw=loadJson(K_WALLET,{});return {...EMPTY_WALLET,...raw};};
 const getTotalWallet=()=>{const w=getWallet();return Number(w.BNI||0)+Number(w.BCA||0)+Number(w.Mandiri||0)+Number(w["Other Bank"]||0)+Number(w["E-Wallet"]||0)+Number(w.Cash||0);};
+
+function prevMonthStr(bln){
+  const [y,m]=bln.split("-").map(Number);
+  const d=new Date(y,m-2,1);
+  return d.getFullYear()+"-"+pad(d.getMonth()+1);
+}
+
+function isFirstDayOfMonth(d=new Date()){
+  return d.getDate()===1;
+}
+
+function isMonthAwalFixed(bln){
+  return Boolean(getAwalLockMap()[bln]);
+}
+
+function canEditMonthAwal(bln){
+  return isFirstDayOfMonth() && bln===blnStr() && !isMonthAwalFixed(bln);
+}
+
+function getMonthNetFlow(bln){
+  return getTx()
+    .filter(x=>x.tgl && x.tgl.slice(0,7)===bln)
+    .reduce((sum,x)=> x.tipe==="income" ? sum+Number(x.nominal||0) : sum-Number(x.nominal||0), 0);
+}
+
+function getPrevMonthEndingBalance(bln){
+  const prev=prevMonthStr(bln);
+  const m=getAwalMap();
+  if(m[prev]===undefined)return null;
+  return Number(m[prev]||0)+getMonthNetFlow(prev);
+}
+
+function ensureMonthOpeningBalance(bln=blnStr()){
+  const m=getAwalMap();
+  if(m[bln]!==undefined)return Number(m[bln]||0);
+  const prevEnd=getPrevMonthEndingBalance(bln);
+  const base = prevEnd!==null ? prevEnd : getTotalWallet();
+  m[bln]=base;
+  saveJson(K_AWAL,m);
+  return base;
+}
+
+function lockMonthAwal(bln){
+  const lk=getAwalLockMap();
+  lk[bln]=true;
+  saveJson(K_AWAL_LOCK,lk);
+}
 
 function isCloudReady(){return Boolean(CLOUD_BIN_ID && CLOUD_API_KEY);}
 function setSyncLabel(msg){const el=document.getElementById("syncStatus");if(el)el.textContent=msg;}
 
 function collectAllState(){
-  return{updatedAt:Date.now(),acc:getAcc(),tx:getTx(),cls:getCls(),awal:getAwalMap(),wallet:getWallet(),theme:localStorage.getItem(K_THEME)||"default",promptBln:localStorage.getItem(K_PROMPT_BLN)||"",lang:getLang()};
+  return{updatedAt:Date.now(),acc:getAcc(),tx:getTx(),cls:getCls(),awal:getAwalMap(),awalLock:getAwalLockMap(),wallet:getWallet(),theme:localStorage.getItem(K_THEME)||"default",promptBln:localStorage.getItem(K_PROMPT_BLN)||"",lang:getLang()};
 }
 
 function applyState(d){
@@ -436,6 +534,7 @@ function applyState(d){
   if(Array.isArray(d.tx))saveJson(K_TX,d.tx);
   if(Array.isArray(d.cls))saveJson(K_CLS,d.cls);
   if(d.awal&&typeof d.awal==="object")saveJson(K_AWAL,d.awal);
+  if(d.awalLock&&typeof d.awalLock==="object")saveJson(K_AWAL_LOCK,d.awalLock);
   if(d.wallet&&typeof d.wallet==="object")saveJson(K_WALLET,{...EMPTY_WALLET,...d.wallet});
   if(d.theme)changeTheme(d.theme);
   if(d.promptBln!==undefined)localStorage.setItem(K_PROMPT_BLN,d.promptBln);
@@ -474,7 +573,7 @@ async function syncFromCloud(showAlert=false){
     if(rec && rec.acc){
       applyState(rec);
       applyLangUI();
-      if(!document.getElementById("appBox").classList.contains("hide")){syncAwalWithWallet();muatFormAwal();cekLockForm();renderAll();}
+      if(!document.getElementById("appBox").classList.contains("hide")){ensureMonthOpeningBalance();updateMonthNotifBanner();muatFormAwal();cekLockForm();renderAll();}
       setSyncLabel(t("synced")+jamStr());
       if(showAlert)alert(t("synced").trim());
       return rec;
@@ -484,13 +583,6 @@ async function syncFromCloud(showAlert=false){
     if(showAlert)alert(t("localOnly"));
     return null;
   }
-}
-
-function syncAwalWithWallet(bln=blnStr()){
-  const tot=getTotalWallet(),m=getAwalMap();
-  m[bln]=tot;
-  saveJson(K_AWAL,m);
-  return tot;
 }
 
 function touchSession(){
@@ -526,7 +618,7 @@ function importBackup(ev){
     try{
       const d=(JSON.parse(r.result)).data||JSON.parse(r.result);
       applyState(d);ev.target.value="";applyLangUI();
-      if(!document.getElementById("appBox").classList.contains("hide")){syncAwalWithWallet();muatFormAwal();cekLockForm();renderAll();}
+      if(!document.getElementById("appBox").classList.contains("hide")){ensureMonthOpeningBalance();updateMonthNotifBanner();muatFormAwal();cekLockForm();renderAll();}
       await saveToCloud();
       alert(t("importOk"));
     }catch{alert(t("invalidFile"));}
@@ -535,7 +627,6 @@ function importBackup(ev){
 }
 
 function isDateLocked(tgl){const today=tglStr();return !tgl||tgl<today||(tgl===today&&getCls().some(c=>c.tgl===today));}
-function isMonthLocked(bln){return bln<blnStr();}
 function changeTheme(th){document.body.className=th==="default"?"":"theme-"+th;localStorage.setItem(K_THEME,th);const s=document.getElementById("themeSelect");if(s)s.value=th;}
 function setAuthMode(m){const r=m==="register";document.getElementById("panelLogin").classList.toggle("hide",r);document.getElementById("panelReg").classList.toggle("hide",!r);document.getElementById("tabLogin").className=r?"btn-sec":"";document.getElementById("tabReg").className=r?"":"btn-sec";}
 function initAuth(){const acc=getAcc();if(acc){document.getElementById("loginInfo").textContent=t("accPrefix")+acc.username;if(!document.getElementById("inUser").value)document.getElementById("inUser").value=acc.username;}else{document.getElementById("loginInfo").textContent=t("noAcc");}}
@@ -553,7 +644,7 @@ function enterApp(){
   document.getElementById("appBox").classList.remove("hide");
   document.getElementById("txTgl").value=tglStr();
   document.getElementById("awalBln").value=blnStr();
-  syncAwalWithWallet();muatFormAwal();cekLockForm();renderAll();cekPengingatAwalBulan();
+  ensureMonthOpeningBalance();updateMonthNotifBanner();muatFormAwal();cekLockForm();renderAll();cekPengingatAwalBulan();
 }
 
 async function loginUser(){
@@ -625,17 +716,49 @@ async function simpanDatabaseSaldo(){
     "E-Wallet":Number(document.getElementById("dbEwallet").value||0),
     Cash:Number(document.getElementById("dbCash").value||0)
   };
-  saveJson(K_WALLET,w);syncAwalWithWallet();muatFormAwal();document.getElementById("dbMsg").textContent=t("saved");
+  saveJson(K_WALLET,w);
+  const bln=blnStr(),m=getAwalMap();
+  if(m[bln]===undefined){m[bln]=getTotalWallet();saveJson(K_AWAL,m);}
+  muatFormAwal();document.getElementById("dbMsg").textContent=t("saved");
   renderAll();await saveToCloud();
 }
 
 function muatFormAwal(){
-  const bln=document.getElementById("awalBln").value||blnStr(),locked=isMonthLocked(bln);
-  const val=locked ? Number(getAwalMap()[bln]??getTotalWallet()) : getTotalWallet();
+  const bln=document.getElementById("awalBln").value||blnStr();
+  const m=getAwalMap();
+  const prevEnd=getPrevMonthEndingBalance(bln);
+  const val = m[bln]!==undefined ? Number(m[bln]) : (prevEnd!==null ? prevEnd : getTotalWallet());
+  const editable=canEditMonthAwal(bln);
   document.getElementById("awalNominal").value=val;
-  document.getElementById("awalLockNote").textContent=locked?t("locked"):"";
+  document.getElementById("awalNominal").readOnly=!editable;
+  document.getElementById("btnSimpanAwal").disabled=!editable;
+  let statusNote = editable ? "" : (isMonthAwalFixed(bln) ? t("awalFixedLock") : t("awalDayOnly"));
+  if(prevEnd!==null){
+    statusNote=(t("awalPrevCarry")+rp(prevEnd)+(statusNote?" • "+statusNote:"")).trim();
+  }
+  document.getElementById("awalLockNote").textContent=statusNote;
 }
-document.getElementById("awalBln").addEventListener("change",muatFormAwal);
+
+async function simpanSaldoAwal(){
+  const bln=document.getElementById("awalBln").value||blnStr();
+  if(!canEditMonthAwal(bln)){
+    alert(isMonthAwalFixed(bln) ? t("awalFixedLock") : t("awalDayOnly"));
+    return;
+  }
+  if(!confirm(t("confirmAwalLock")))return;
+  const inputVal=Number(document.getElementById("awalNominal").value||0);
+  const prevEnd=getPrevMonthEndingBalance(bln);
+  const totalAccum = prevEnd!==null ? (prevEnd + inputVal) : inputVal;
+  const m=getAwalMap();
+  m[bln]=totalAccum;
+  saveJson(K_AWAL,m);
+  lockMonthAwal(bln);
+  localStorage.setItem(K_PROMPT_BLN,bln);
+  updateMonthNotifBanner();
+  muatFormAwal();
+  renderAll();
+  await saveToCloud();
+}
 
 function cekLockForm(){
   const tgl=document.getElementById("txTgl").value||tglStr(),locked=isDateLocked(tgl);
@@ -653,7 +776,6 @@ async function tambahTransaksi(){
   const w=getWallet();
   w[akun]=tipe==="income"?Number(w[akun]||0)+nom:Number(w[akun]||0)-nom;
   saveJson(K_WALLET,w);
-  syncAwalWithWallet(tgl.slice(0,7));muatFormAwal();
   document.getElementById("txKet").value="";document.getElementById("txNominal").value="";fi.value="";
   renderAll();await saveToCloud();
 }
@@ -663,7 +785,6 @@ async function hapusTransaksi(id){
   const w=getWallet();
   w[t.akun]=t.tipe==="income"?Number(w[t.akun]||0)-Number(t.nominal):Number(w[t.akun]||0)+Number(t.nominal);
   saveJson(K_WALLET,w);
-  syncAwalWithWallet(t.tgl.slice(0,7));muatFormAwal();
   saveJson(K_TX,tx.filter(x=>x.id!==id));
   renderAll();await saveToCloud();
 }
@@ -679,15 +800,60 @@ async function doClosing(manual){
   if(manual)alert(hr+" — "+t("closeDone"));
 }
 
-function cekPengingatAwalBulan(){const bln=blnStr();if(localStorage.getItem(K_PROMPT_BLN)!==bln){document.getElementById("modalBlnLbl").textContent=bln;document.getElementById("modalInVal").value="";document.getElementById("monthModal").classList.remove("hide");}}
+function updateMonthNotifBanner(){
+  const now=new Date(),bln=blnStr(now),banner=document.getElementById("monthNotifBanner");
+  if(!banner)return;
+  if(isFirstDayOfMonth(now) && !isMonthAwalFixed(bln)){
+    document.getElementById("monthNotifText").textContent=t("monthNotifTitle")+bln;
+    banner.classList.remove("hide");
+  }else{
+    banner.classList.add("hide");
+  }
+}
+
+function openMonthModal(){
+  const now=new Date(),bln=blnStr(now);
+  if(!canEditMonthAwal(bln))return;
+  const prevEnd=getPrevMonthEndingBalance(bln);
+  document.getElementById("modalBlnLbl").textContent=bln;
+  document.getElementById("modalCarryInfo").textContent=prevEnd!==null ? (t("awalPrevCarry")+rp(prevEnd)) : "";
+  document.getElementById("modalAwalVal").value="";
+  document.getElementById("modalInVal").value="";
+  document.getElementById("monthModal").classList.remove("hide");
+}
+
+function cekPengingatAwalBulan(){
+  updateMonthNotifBanner();
+  const now=new Date(),bln=blnStr(now);
+  if(isFirstDayOfMonth(now) && !isMonthAwalFixed(bln) && localStorage.getItem(K_PROMPT_BLN)!==bln){
+    openMonthModal();
+  }
+}
+
 async function tutupModalBulan(){localStorage.setItem(K_PROMPT_BLN,blnStr());document.getElementById("monthModal").classList.add("hide");await saveToCloud();}
 
 async function simpanModalAwalBulan(){
-  const bln=blnStr(),inVal=Number(document.getElementById("modalInVal").value||0),inAkun=document.getElementById("modalInAkun").value,w=getWallet();
+  const bln=blnStr();
+  if(!canEditMonthAwal(bln)){
+    alert(isMonthAwalFixed(bln) ? t("awalFixedLock") : t("awalDayOnly"));
+    document.getElementById("monthModal").classList.add("hide");
+    return;
+  }
+  if(!confirm(t("confirmAwalLock")))return;
+  const inVal=Number(document.getElementById("modalInVal").value||0),inAkun=document.getElementById("modalInAkun").value,w=getWallet();
   if(inVal>0){const tx=getTx();tx.unshift({id:Date.now(),tgl:tglStr(),tipe:"income",akun:inAkun,ket:"Pemasukan Awal Bulan",nominal:inVal,jam:jamStr(),receipt:null});saveJson(K_TX,tx);w[inAkun]=Number(w[inAkun]||0)+inVal;saveJson(K_WALLET,w);}
-  syncAwalWithWallet(bln);muatFormAwal();
-  localStorage.setItem(K_PROMPT_BLN,bln);document.getElementById("monthModal").classList.add("hide");
-  renderAll();await saveToCloud();
+  const prevEnd=getPrevMonthEndingBalance(bln);
+  const addedAwal=Number(document.getElementById("modalAwalVal").value||0);
+  const m=getAwalMap();
+  m[bln] = prevEnd!==null ? (prevEnd + addedAwal) : (addedAwal || getTotalWallet());
+  saveJson(K_AWAL,m);
+  lockMonthAwal(bln);
+  localStorage.setItem(K_PROMPT_BLN,bln);
+  document.getElementById("monthModal").classList.add("hide");
+  updateMonthNotifBanner();
+  muatFormAwal();
+  renderAll();
+  await saveToCloud();
 }
 
 function resetViewFilter(){document.getElementById("viewFilterTipe").value="all";document.getElementById("viewFilterTgl").value="";renderViewOnly();}
@@ -701,8 +867,81 @@ function renderViewOnly(){
   }).join("")||'<div class="small">'+t("noData")+'</div>';
 }
 
+function renderMonthEndChart(awalBln, akhirBln){
+  const canvas=document.getElementById("monthEndChart");
+  if(!canvas)return;
+  const ctx=canvas.getContext("2d");
+  const dpr=window.devicePixelRatio||1;
+  const rect=canvas.getBoundingClientRect();
+  const w=Math.max(220,Math.floor(rect.width||320));
+  const h=Math.max(140,Math.floor(rect.height||165));
+  canvas.width=w*dpr;
+  canvas.height=h*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+
+  const diff=akhirBln-awalBln;
+  const badge=document.getElementById("chartTrendBadge");
+  const sumEl=document.getElementById("chartSummary");
+  if(diff>0){
+    badge.textContent=t("trendUp");
+    badge.className="badge-lock";
+    badge.style.background="#dcfce7";
+    badge.style.color="#15803d";
+  }else if(diff<0){
+    badge.textContent=t("trendDown");
+    badge.className="badge-lock";
+    badge.style.background="#fee2e2";
+    badge.style.color="#b91c1c";
+  }else{
+    badge.textContent=t("trendFlat");
+    badge.className="pill-ro";
+  }
+  const sign = diff>0 ? "+" : (diff<0 ? "-" : "");
+  sumEl.innerHTML=`${t("chartStart")}: <b>${rp(awalBln)}</b> • ${t("chartEnd")}: <b>${rp(akhirBln)}</b> • <span class="${diff>=0?"in":"out"}">${sign}${rp(Math.abs(diff))}</span>`;
+
+  const padL=14,padR=14,padT=26,padB=28;
+  const plotW=w-padL-padR, plotH=h-padT-padB;
+  const vals=[awalBln,akhirBln];
+  const minV=Math.min(0,...vals);
+  const maxV=Math.max(1,...vals);
+  const span=Math.max(1,maxV-minV);
+  const yZero=padT+plotH-((0-minV)/span)*plotH;
+
+  ctx.strokeStyle="#cbd5e1";
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(padL,yZero);
+  ctx.lineTo(w-padR,yZero);
+  ctx.stroke();
+
+  const barW=Math.min(68,Math.max(36,plotW/4.5));
+  const x1=padL+plotW*0.28-barW/2;
+  const x2=padL+plotW*0.72-barW/2;
+
+  const drawBar=(x,val,color,label)=>{
+    const yVal=padT+plotH-((val-minV)/span)*plotH;
+    const top=Math.min(yVal,yZero);
+    const bh=Math.max(4,Math.abs(yZero-yVal));
+    ctx.fillStyle=color;
+    ctx.beginPath();
+    ctx.roundRect(x,top,barW,bh,6);
+    ctx.fill();
+
+    ctx.fillStyle=getComputedStyle(document.body).color||"#0f172a";
+    ctx.font="bold 11px system-ui,-apple-system,sans-serif";
+    ctx.textAlign="center";
+    ctx.fillText(rp(val),x+barW/2,Math.max(14,top-6));
+    ctx.fillStyle="#64748b";
+    ctx.fillText(label,x+barW/2,h-10);
+  };
+
+  drawBar(x1,awalBln,"#0284c7",t("chartStart"));
+  drawBar(x2,akhirBln,diff>=0?"#16a34a":"#dc2626",t("chartEnd"));
+}
+
 function renderAll(){
-  const acc=getAcc()||{username:"Pengguna",avatar:""},w=getWallet(),tx=getTx(),hr=tglStr(),bln=blnStr(),tot=getTotalWallet(),awal=syncAwalWithWallet(bln);
+  const acc=getAcc()||{username:"Pengguna",avatar:""},w=getWallet(),tx=getTx(),hr=tglStr(),bln=blnStr(),tot=getTotalWallet(),awal=ensureMonthOpeningBalance(bln);
   document.getElementById("hdrName").textContent=acc.username;document.getElementById("hdrAvatar").src=acc.avatar||"";
   document.getElementById("lblAwal").textContent=rp(awal);
   document.getElementById("lblBni").textContent=rp(w.BNI||0);
@@ -715,6 +954,7 @@ function renderAll(){
   document.getElementById("lblMasukHr").textContent=rp(tx.filter(x=>x.tgl===hr&&x.tipe==="income").reduce((a,b)=>a+b.nominal,0));
   document.getElementById("lblKeluarHr").textContent=rp(tx.filter(x=>x.tgl===hr&&x.tipe!=="income").reduce((a,b)=>a+b.nominal,0));
   renderViewOnly();
+  renderMonthEndChart(awal,tot);
   document.getElementById("txList").innerHTML=tx.map(x=>{
     const lk=isDateLocked(x.tgl),isIn=x.tipe==="income";
     return '<div class="item"><div><b>'+x.ket+'</b> <span class="small">('+x.akun+')</span><div class="small">'+x.tgl+' • '+x.jam+(lk?' <span class="badge-lock">'+t("locked")+'</span>':"")+'</div></div><div class="row-flex"><span class="'+(isIn?"in":"out")+'">'+(isIn?"+":"-")+rp(x.nominal)+'</span>'+(x.receipt?'<button type="button" class="btn-sec btn-sm" onclick="openReceiptModal('+x.id+')">Struk</button>':"")+(lk?"":'<button type="button" class="btn-red btn-sm" onclick="hapusTransaksi('+x.id+')">Hapus</button>')+'</div></div>';
@@ -733,6 +973,7 @@ if(isCloudReady()){
 setInterval(()=>{
   const now=new Date(),j=jamStr(now),clk=document.getElementById("hdrClock");
   if(clk)clk.textContent=tglStr(now)+" — "+j;
+  updateMonthNotifBanner();
   if(j==="23:59:59")doClosing(false);
   if(!document.getElementById("appBox").classList.contains("hide") && !hasValidSession())logoutUser(true);
 },1000);
