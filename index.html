@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finote</title>
+<style>
+body{font-family:sans-serif;background:#f4f4f5;margin:0;padding:16px}
+.box{max-width:480px;margin:auto;background:#fff;padding:16px;border-radius:12px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+input,button{width:100%;padding:10px;margin-top:8px;border-radius:8px;border:1px solid #ccc;font-size:15px;box-sizing:border-box}
+button{background:#2563eb;color:#fff;border:none;font-weight:bold}
+.row{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding:8px 0}
+.small{font-size:12px;color:#666}
+.hide{display:none}
+</style>
+</head>
+<body>
+
+<div id="login" class="box">
+<h3>Login Finote</h3>
+<div class="small">PIN awal: 1234</div>
+<input id="pin" type="password" placeholder="Masukkan PIN">
+<button onclick="login()">Masuk</button>
+<div id="err" class="small" style="color:red;margin-top:6px"></div>
+</div>
+
+<div id="app" class="hide">
+<div class="box">
+<b>Finote — Pengeluaran Harian</b>
+<div id="jam" class="small" style="margin-top:4px"></div>
+<div style="margin-top:8px;font-size:18px;font-weight:bold;color:#059669">Hari ini: <span id="tot">Rp 0</span></div>
+</div>
+
+<div class="box">
+<input id="tgl" type="date">
+<input id="ket" type="text" placeholder="Pengeluaran untuk apa?">
+<input id="biaya" type="number" placeholder="Biaya (Rp)">
+<button onclick="tambah()">Simpan</button>
+</div>
+
+<div class="box">
+<b>Riwayat</b>
+<div id="list"></div>
+</div>
+
+<div class="box">
+<b>Daily Closing (23:59:59)</b>
+<button onclick="closing(true)">Tutup Hari Ini Sekarang</button>
+<div id="rekap" style="margin-top:8px"></div>
+</div>
+</div>
+
+<script>
+const K_EXP="fn_exp",K_CLS="fn_cls",K_PIN="fn_pin";
+const rp=n=>"Rp "+Number(n||0).toLocaleString("id-ID");
+const tglStr=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const jamStr=(d=new Date())=>`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}`;
+const getD=k=>JSON.parse(localStorage.getItem(k)||"[]");
+const setD=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+
+function login(){
+const ben=localStorage.getItem(K_PIN)||"1234";
+if(document.getElementById("pin").value===ben){
+loginBox.classList.add("hide");app.classList.remove("hide");
+tgl.value=tglStr();render();
+}else{err.textContent="PIN salah";}
+}
+const loginBox=document.getElementById("login");
+
+function tambah(){
+if(!tgl.value||!ket.value||!biaya.value)return;
+const arr=getD(K_EXP);
+arr.unshift({id:Date.now(),tgl:tgl.value,ket:ket.value.trim(),biaya:Number(biaya.value),jam:jamStr()});
+setD(K_EXP,arr);ket.value="";biaya.value="";render();
+}
+
+function hapus(id){setD(K_EXP,getD(K_EXP).filter(x=>x.id!==id));render();}
+
+function closing(manual){
+const hr=tglStr();
+const totHr=getD(K_EXP).filter(x=>x.tgl===hr).reduce((a,b)=>a+b.biaya,0);
+const cls=getD(K_CLS);
+const idx=cls.findIndex(x=>x.tgl===hr);
+const rec={tgl:hr,tot:totHr,jam:jamStr()};
+if(idx>=0)cls[idx]=rec;else cls.unshift(rec);
+setD(K_CLS,cls);render();
+if(manual)alert("Total "+hr+": "+rp(totHr));
+}
+
+function render(){
+const hr=tglStr();
+const exp=getD(K_EXP);
+tot.textContent=rp(exp.filter(x=>x.tgl===hr).reduce((a,b)=>a+b.biaya,0));
+list.innerHTML=exp.map(x=>`<div class="row"><div><b>${x.ket}</b><div class="small">${x.tgl} • Jam ${x.jam}</div></div><div><b>${rp(x.biaya)}</b> <button style="width:auto;padding:4px 8px;background:#dc2626" onclick="hapus(${x.id})">x</button></div></div>`).join("")||`<div class="small">Kosong</div>`;
+rekap.innerHTML=getD(K_CLS).map(c=>`<div class="row"><div><b>${c.tgl}</b><div class="small">Tutup ${c.jam}</div></div><b>${rp(c.tot)}</b></div>`).join("")||`<div class="small">Belum ada closing</div>`;
+}
+
+setInterval(()=>{
+const now=new Date(),j=jamStr(now);
+jam.textContent=tglStr(now)+" — "+j+" (Closing 23:59:59)";
+if(j==="23:59:59")closing(false);
+},1000);
+</script>
+</body>
+</html>
