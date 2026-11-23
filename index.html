@@ -5,13 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Finote</title>
 <style>
-body{font-family:sans-serif;background:#f4f4f5;margin:0;padding:16px}
-.box{max-width:480px;margin:auto;background:#fff;padding:16px;border-radius:12px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
-input,button{width:100%;padding:10px;margin-top:8px;border-radius:8px;border:1px solid #ccc;font-size:15px;box-sizing:border-box}
-button{background:#2563eb;color:#fff;border:none;font-weight:bold}
-.row{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding:8px 0}
+body{font-family:sans-serif;background:#f4f4f5;margin:0;padding:16px;color:#111827}
+.box{max-width:500px;margin:auto;background:#fff;padding:16px;border-radius:12px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+input,select,button{width:100%;padding:10px;margin-top:8px;border-radius:8px;border:1px solid #ccc;font-size:15px;box-sizing:border-box;background:#fff}
+button{background:#2563eb;color:#fff;border:none;font-weight:bold;cursor:pointer}
+.btn-row{display:flex;gap:8px}
+.btn-sec{background:#e5e7eb;color:#111827}
+.row{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding:8px 0;gap:8px}
 .small{font-size:12px;color:#666}
 .hide{display:none}
+.in{color:#059669;font-weight:bold}
+.out{color:#dc2626;font-weight:bold}
+.stat{font-size:16px;font-weight:bold;margin-top:6px}
 </style>
 </head>
 <body>
@@ -19,27 +24,47 @@ button{background:#2563eb;color:#fff;border:none;font-weight:bold}
 <div id="login" class="box">
 <h3>Login Finote</h3>
 <div class="small">PIN awal: 1234</div>
-<input id="pin" type="password" placeholder="Masukkan PIN">
+<input id="pin" type="password" inputmode="numeric" placeholder="Masukkan PIN">
 <button onclick="login()">Masuk</button>
 <div id="err" class="small" style="color:red;margin-top:6px"></div>
 </div>
 
 <div id="app" class="hide">
 <div class="box">
-<b>Finote — Pengeluaran Harian</b>
+<div style="display:flex;justify-content:space-between;align-items:center">
+<b>Finote — Keuangan Bulanan & Harian</b>
+<button class="btn-sec" style="width:auto;padding:5px 10px;margin:0;font-size:12px" onclick="gantiPin()">Ganti PIN</button>
+</div>
 <div id="jam" class="small" style="margin-top:4px"></div>
-<div style="margin-top:8px;font-size:18px;font-weight:bold;color:#059669">Hari ini: <span id="tot">Rp 0</span></div>
+<div class="stat">Sisa Saldo Bulan Ini: <span id="saldoBulan" class="in">Rp 0</span></div>
+<div class="small" style="margin-top:4px">
+Saldo Awal Bulan: <b id="lblAwal">Rp 0</b> • Pemasukan Hari Ini: <b id="masukHr" class="in">Rp 0</b> • Pengeluaran Hari Ini: <b id="keluarHr" class="out">Rp 0</b>
+</div>
 </div>
 
 <div class="box">
+<b>Saldo Awal Bulan</b>
+<div class="btn-row">
+<input id="bulanSaldo" type="month" style="margin-top:8px">
+<input id="nominalAwal" type="number" min="0" placeholder="Saldo awal (Rp)">
+</div>
+<button class="btn-sec" onclick="simpanSaldoAwal()">Simpan Saldo Awal Bulan</button>
+</div>
+
+<div class="box">
+<b>Catat Transaksi</b>
+<select id="tipe">
+<option value="expense">Pengeluaran (-)</option>
+<option value="income">Pemasukan (+)</option>
+</select>
 <input id="tgl" type="date">
-<input id="ket" type="text" placeholder="Pengeluaran untuk apa?">
-<input id="biaya" type="number" placeholder="Biaya (Rp)">
-<button onclick="tambah()">Simpan</button>
+<input id="ket" type="text" placeholder="Keterangan (misal: Gaji, Makan siang, Kopi)">
+<input id="biaya" type="number" min="1" placeholder="Nominal (Rp)">
+<button onclick="tambah()">Simpan Transaksi</button>
 </div>
 
 <div class="box">
-<b>Riwayat</b>
+<b>Riwayat Transaksi</b>
 <div id="list"></div>
 </div>
 
@@ -51,48 +76,101 @@ button{background:#2563eb;color:#fff;border:none;font-weight:bold}
 </div>
 
 <script>
-const K_EXP="fn_exp",K_CLS="fn_cls",K_PIN="fn_pin";
+const K_EXP="fn_exp_v2",K_CLS="fn_cls_v2",K_PIN="fn_pin",K_SALDO="fn_saldo_awal_v1";
 const rp=n=>"Rp "+Number(n||0).toLocaleString("id-ID");
 const tglStr=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const blnStr=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
 const jamStr=(d=new Date())=>`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}`;
 const getD=k=>JSON.parse(localStorage.getItem(k)||"[]");
 const setD=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const getSaldoMap=()=>JSON.parse(localStorage.getItem(K_SALDO)||"{}");
 
 function login(){
 const ben=localStorage.getItem(K_PIN)||"1234";
 if(document.getElementById("pin").value===ben){
-loginBox.classList.add("hide");app.classList.remove("hide");
-tgl.value=tglStr();render();
+login.classList.add("hide");app.classList.remove("hide");
+tgl.value=tglStr();
+bulanSaldo.value=blnStr();
+muatFormSaldoAwal();
+render();
 }else{err.textContent="PIN salah";}
 }
-const loginBox=document.getElementById("login");
+
+function gantiPin(){
+const p=prompt("Masukkan PIN baru (min 4 karakter):");
+if(p&&p.trim().length>=4){localStorage.setItem(K_PIN,p.trim());alert("PIN tersimpan.");}
+}
+
+function muatFormSaldoAwal(){
+const m=getSaldoMap();
+nominalAwal.value=m[bulanSaldo.value]??"";
+}
+bulanSaldo.addEventListener("change",muatFormSaldoAwal);
+
+function simpanSaldoAwal(){
+const bln=bulanSaldo.value||blnStr();
+const val=Number(nominalAwal.value||0);
+const m=getSaldoMap();
+m[bln]=val;
+localStorage.setItem(K_SALDO,JSON.stringify(m));
+render();
+alert("Saldo awal bulan "+bln+" disimpan: "+rp(val));
+}
 
 function tambah(){
-if(!tgl.value||!ket.value||!biaya.value)return;
+if(!tgl.value||!ket.value.trim()||!biaya.value||Number(biaya.value)<=0)return;
 const arr=getD(K_EXP);
-arr.unshift({id:Date.now(),tgl:tgl.value,ket:ket.value.trim(),biaya:Number(biaya.value),jam:jamStr()});
-setD(K_EXP,arr);ket.value="";biaya.value="";render();
+arr.unshift({
+id:Date.now(),
+tipe:tipe.value,
+tgl:tgl.value,
+ket:ket.value.trim(),
+biaya:Number(biaya.value),
+jam:jamStr()
+});
+setD(K_EXP,arr);
+ket.value="";biaya.value="";
+render();
 }
 
 function hapus(id){setD(K_EXP,getD(K_EXP).filter(x=>x.id!==id));render();}
 
 function closing(manual){
 const hr=tglStr();
-const totHr=getD(K_EXP).filter(x=>x.tgl===hr).reduce((a,b)=>a+b.biaya,0);
+const expHr=getD(K_EXP).filter(x=>x.tgl===hr&&x.tipe!=="income").reduce((a,b)=>a+b.biaya,0);
+const incHr=getD(K_EXP).filter(x=>x.tgl===hr&&x.tipe==="income").reduce((a,b)=>a+b.biaya,0);
 const cls=getD(K_CLS);
 const idx=cls.findIndex(x=>x.tgl===hr);
-const rec={tgl:hr,tot:totHr,jam:jamStr()};
+const rec={tgl:hr,keluar:expHr,masuk:incHr,jam:jamStr()};
 if(idx>=0)cls[idx]=rec;else cls.unshift(rec);
 setD(K_CLS,cls);render();
-if(manual)alert("Total "+hr+": "+rp(totHr));
+if(manual)alert("Closing "+hr+"\nPemasukan: "+rp(incHr)+"\nPengeluaran: "+rp(expHr));
 }
 
 function render(){
 const hr=tglStr();
+const bln=blnStr();
 const exp=getD(K_EXP);
-tot.textContent=rp(exp.filter(x=>x.tgl===hr).reduce((a,b)=>a+b.biaya,0));
-list.innerHTML=exp.map(x=>`<div class="row"><div><b>${x.ket}</b><div class="small">${x.tgl} • Jam ${x.jam}</div></div><div><b>${rp(x.biaya)}</b> <button style="width:auto;padding:4px 8px;background:#dc2626" onclick="hapus(${x.id})">x</button></div></div>`).join("")||`<div class="small">Kosong</div>`;
-rekap.innerHTML=getD(K_CLS).map(c=>`<div class="row"><div><b>${c.tgl}</b><div class="small">Tutup ${c.jam}</div></div><b>${rp(c.tot)}</b></div>`).join("")||`<div class="small">Belum ada closing</div>`;
+const awal=Number(getSaldoMap()[bln]||0);
+const masukBln=exp.filter(x=>x.tgl.startsWith(bln)&&x.tipe==="income").reduce((a,b)=>a+b.biaya,0);
+const keluarBln=exp.filter(x=>x.tgl.startsWith(bln)&&x.tipe!=="income").reduce((a,b)=>a+b.biaya,0);
+const sisa=awal+masukBln-keluarBln;
+
+lblAwal.textContent=rp(awal);
+saldoBulan.textContent=rp(sisa);
+saldoBulan.className=sisa>=0?"in":"out";
+
+const masukToday=exp.filter(x=>x.tgl===hr&&x.tipe==="income").reduce((a,b)=>a+b.biaya,0);
+const keluarToday=exp.filter(x=>x.tgl===hr&&x.tipe!=="income").reduce((a,b)=>a+b.biaya,0);
+masukHr.textContent=rp(masukToday);
+keluarHr.textContent=rp(keluarToday);
+
+list.innerHTML=exp.map(x=>{
+const isIn=x.tipe==="income";
+return `<div class="row"><div><b>${x.ket}</b> <span class="small">(${isIn?"Masuk":"Keluar"})</span><div class="small">${x.tgl} • Jam ${x.jam}</div></div><div style="display:flex;align-items:center;gap:6px"><span class="${isIn?"in":"out"}">${isIn?"+":"-"}${rp(x.biaya)}</span><button style="width:auto;padding:4px 8px;margin:0;background:#dc2626" onclick="hapus(${x.id})">x</button></div></div>`;
+}).join("")||`<div class="small">Belum ada transaksi</div>`;
+
+rekap.innerHTML=getD(K_CLS).map(c=>`<div class="row"><div><b>${c.tgl}</b><div class="small">Tutup ${c.jam} • Masuk ${rp(c.masuk||0)}</div></div><div class="out">${rp(c.keluar||0)}</div></div>`).join("")||`<div class="small">Belum ada closing</div>`;
 }
 
 setInterval(()=>{
