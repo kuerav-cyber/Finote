@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finote — Finhub</title>
+<style>
+:root{
+  --bg:#f4f4f5;--card:#ffffff;--text:#111827;--muted:#6b7280;--accent:#2563eb;--border:#e5e7eb;
+}
+body.theme-violet{--bg:#f3e8ff;--card:#ffffff;--text:#1e1b4b;--muted:#6b21a8;--accent:#7c3aed;--border:#e9d5ff}
+body.theme-blue{--bg:#e0f2fe;--card:#ffffff;--text:#0c4a6e;--muted:#0369a1;--accent:#0284c7;--border:#bae6fd}
+body.theme-mint{--bg:#dcfce7;--card:#ffffff;--text:#14532d;--muted:#15803d;--accent:#16a34a;--border:#bbf7d0}
+body.theme-dark{--bg:#111827;--card:#1f2937;--text:#f9fafb;--muted:#9ca3af;--accent:#3b82f6;--border:#374151}
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);margin:0;padding:14px}
+.wrap{max-width:520px;margin:auto}
+.box{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px}
+input,select,button{width:100%;padding:10px 12px;margin-top:8px;border-radius:10px;border:1px solid var(--border);font-size:15px;background:var(--card);color:var(--text)}
+button{background:var(--accent);color:#fff;border:none;font-weight:700;cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}
+.btn-sec{background:var(--border);color:var(--text)}
+.btn-red{background:#dc2626;color:#fff}
+.btn-sm{width:auto;padding:5px 9px;margin:0;font-size:12px}
+.row-flex{display:flex;gap:8px;align-items:center}
+.between{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);background:var(--accent);flex-shrink:0}
+.menu-btn{width:auto;padding:8px 12px;margin:0;font-size:18px;line-height:1}
+.drawer{position:fixed;top:0;right:0;width:86%;max-width:340px;height:100%;background:var(--card);border-left:1px solid var(--border);z-index:50;padding:16px;overflow-y:auto}
+.backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:40}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:60}
+.modal-card{width:100%;max-width:440px;background:var(--card);border-radius:14px;padding:16px;border:1px solid var(--border);max-height:90vh;overflow-y:auto}
+.item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);gap:8px}
+.small{font-size:12px;color:var(--muted)}
+.in{color:#16a34a;font-weight:700}
+.out{color:#dc2626;font-weight:700}
+.big{font-size:20px;font-weight:800;margin-top:4px}
+.badge-lock{font-size:11px;padding:2px 7px;border-radius:999px;background:#fee2e2;color:#b91c1c;font-weight:700}
+.receipt-preview{max-width:100%;max-height:360px;border-radius:10px;display:block;margin:8px auto 0;border:1px solid var(--border)}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="authBox" class="box">
+    <h3 style="margin:0 0 8px">Finote — Masuk / Buat Akun</h3>
+    <div class="row-flex">
+      <button type="button" id="tabLogin" onclick="setAuthMode('login')">Masuk</button>
+      <button type="button" id="tabReg" class="btn-sec" onclick="setAuthMode('register')">Buat Akun</button>
+    </div>
+    <div id="panelLogin">
+      <div class="small" id="loginInfo" style="margin-top:8px">Masukkan username dan password akunmu.</div>
+      <input id="inUser" type="text" placeholder="Username">
+      <input id="inPass" type="password" placeholder="Password">
+      <button type="button" onclick="loginUser()">Masuk</button>
+      <div id="authErr" class="small out" style="margin-top:6px"></div>
+    </div>
+    <div id="panelReg" class="hide">
+      <div class="small" style="margin-top:8px">Buat username & password milikmu sendiri.</div>
+      <input id="regUser" type="text" placeholder="Username baru (min 3 huruf)">
+      <input id="regPass" type="password" placeholder="Password baru (min 4 karakter)">
+      <button type="button" onclick="registerUser()">Simpan & Buat Akun</button>
+      <div id="regErr" class="small out" style="margin-top:6px"></div>
+    </div>
+    <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+      <div class="small">Sudah punya file backup dari browser/HP lain?</div>
+      <input id="authImportFile" type="file" accept=".json,application/json" onchange="importBackup(event)" style="padding:6px;font-size:12px">
+    </div>
+  </div>
+
+  <div id="appBox" class="hide">
+    <div class="box">
+      <div class="between">
+        <div class="row-flex">
+          <img id="hdrAvatar" class="avatar" src="" alt="">
+          <div>
+            <b id="hdrName">Pengguna</b>
+            <div id="hdrClock" class="small"></div>
+          </div>
+        </div>
+        <button type="button" class="menu-btn btn-sec" onclick="openDrawer()">☰</button>
+      </div>
+      <div class="big">Saldo Tersedia: <span id="saldoTotal" class="in">Rp 0</span></div>
+      <div class="small" style="margin-top:4px">
+        Saldo Awal (Total Saldo): <b id="lblAwal">Rp 0</b> • Masuk Hari Ini: <b id="lblMasukHr" class="in">Rp 0</b> • Keluar Hari Ini: <b id="lblKeluarHr" class="out">Rp 0</b>
+      </div>
+      <div class="small" style="margin-top:4px">
+        BNI: <b id="lblBni">Rp 0</b> • BCA: <b id="lblBca">Rp 0</b> • Cash: <b id="lblCash">Rp 0</b>
+      </div>
+    </div>
+
+    <div class="box">
+      <div class="between"><b>Saldo Awal Bulan</b><span class="small">Otomatis ikut total saldo</span></div>
+      <div class="row-flex">
+        <input id="awalBln" type="month">
+        <input id="awalNominal" type="number" readonly>
+      </div>
+      <div id="awalLockNote" class="small out" style="margin-top:4px"></div>
+    </div>
+
+    <div class="box">
+      <b>Catat Transaksi</b>
+      <select id="txTipe">
+        <option value="expense">Pengeluaran (- mengurangi saldo)</option>
+        <option value="income">Pemasukan (+ menambah saldo)</option>
+      </select>
+      <select id="txAkun">
+        <option value="BNI">ATM BNI</option>
+        <option value="BCA">ATM BCA</option>
+        <option value="Cash">Cash (Tunai)</option>
+      </select>
+      <input id="txTgl" type="date" onchange="cekLockForm()">
+      <input id="txKet" type="text" placeholder="Keterangan">
+      <input id="txNominal" type="number" min="1" placeholder="Nominal (Rp)">
+      <label class="small" style="display:block;margin-top:8px">Lampiran Bukti / Struk (Opsional):</label>
+      <input id="txReceipt" type="file" accept="image/*" style="margin-top:4px;padding:6px;font-size:12px">
+      <button type="button" id="btnSimpanTx" onclick="tambahTransaksi()">Simpan Transaksi</button>
+      <div id="txLockNote" class="small out" style="margin-top:4px"></div>
+    </div>
+
+    <div class="box">
+      <div class="between" style="margin-bottom:6px">
+        <b>Lihat Data Pemasukan & Pengeluaran</b>
+        <span class="small">Mode baca saja</span>
+      </div>
+      <div class="row-flex">
+        <select id="viewFilterTipe" onchange="renderViewOnly()">
+          <option value="all">Semua</option>
+          <option value="income">Pemasukan (+)</option>
+          <option value="expense">Pengeluaran (-)</option>
+        </select>
+        <input id="viewFilterTgl" type="date" onchange="renderViewOnly()">
+      </div>
+      <button type="button" class="btn-sec" style="padding:7px;font-size:13px" onclick="resetViewFilter()">Tampilkan Semua Tanggal</button>
+      <div id="viewOnlyList" style="margin-top:8px"></div>
+    </div>
+
+    <div class="box">
+      <b>Kelola Transaksi Hari Ini</b>
+      <div class="small">Tanggal 22 Nov 2026 ke belakang terkunci & tidak bisa diedit.</div>
+      <div id="txList"></div>
+    </div>
+
+    <div class="box">
+      <b>Daily Closing (23:59:59)</b>
+      <button type="button" onclick="doClosing(true)">Tutup Hari Ini Sekarang</button>
+      <div id="closeList" style="margin-top:8px"></div>
+    </div>
+  </div>
+</div>
+
+<div id="backdrop" class="backdrop hide" onclick="closeDrawer()"></div>
+<div id="drawer" class="drawer hide">
+  <div class="between" style="margin-bottom:12px">
+    <b>Menu Finote</b>
+    <button type="button" class="btn-sec btn-sm" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="box" style="padding:12px">
+    <b>1. Profil Akun & Tema</b>
+    <div class="row-flex" style="margin-top:8px">
+      <img id="drawerAvatar" class="avatar" src="" alt="">
+      <input id="fileAvatar" type="file" accept="image/*" onchange="uploadAvatar(event)" style="margin:0;padding:6px;font-size:12px">
+    </div>
+    <input id="profUser" type="text" placeholder="Username baru">
+    <input id="profPass" type="password" placeholder="Password baru (min 4 karakter)">
+    <label class="small" style="display:block;margin-top:8px">Warna Latar Belakang:</label>
+    <select id="themeSelect" onchange="changeTheme(this.value)">
+      <option value="default">Putih Abu</option>
+      <option value="violet">Soft Violet</option>
+      <option value="blue">Soft Blue</option>
+      <option value="mint">Mint Fresh</option>
+      <option value="dark">Dark Mode</option>
+    </select>
+    <button type="button" onclick="simpanProfil()">Simpan Profil</button>
+    <div id="profMsg" class="small in" style="margin-top:4px"></div>
+  </div>
+  <div class="box" style="padding:12px">
+    <b>2. Database Saldo (BNI, BCA, Cash)</b>
+    <div class="small">Boleh minus jika pengeluaran melebihi saldo wadah.</div>
+    <label class="small" style="display:block;margin-top:8px">ATM BNI</label>
+    <input id="dbBni" type="number" step="any" placeholder="0">
+    <label class="small" style="display:block;margin-top:6px">ATM BCA</label>
+    <input id="dbBca" type="number" step="any" placeholder="0">
+    <label class="small" style="display:block;margin-top:6px">Cash (Tunai)</label>
+    <input id="dbCash" type="number" step="any" placeholder="0">
+    <button type="button" onclick="simpanDatabaseSaldo()">Update Database Saldo</button>
+    <div id="dbMsg" class="small in" style="margin-top:4px"></div>
+  </div>
+  <div class="box" style="padding:12px">
+    <b>3. Pindah Browser / HP / Laptop</b>
+    <button type="button" onclick="exportBackup()">Export Data (.json)</button>
+    <label class="small" style="display:block;margin-top:8px">Import File Backup (.json):</label>
+    <input id="drawerImportFile" type="file" accept=".json,application/json" onchange="importBackup(event)" style="margin-top:4px;padding:6px;font-size:12px">
+  </div>
+  <button type="button" class="btn-red" onclick="logoutUser()">Keluar Akun</button>
+</div>
+
+<div id="monthModal" class="modal-bg hide">
+  <div class="modal-card">
+    <h3 style="margin:0 0 6px">Pengingat Awal Bulan</h3>
+    <div class="small">Update pemasukan awal bulan <span id="modalBlnLbl"></span> (saldo awal otomatis mengikuti total saldo).</div>
+    <input id="modalInVal" type="number" min="0" placeholder="Pemasukan awal bulan (Rp)">
+    <select id="modalInAkun">
+      <option value="BNI">ATM BNI</option>
+      <option value="BCA">ATM BCA</option>
+      <option value="Cash">Cash</option>
+    </select>
+    <div class="row-flex" style="margin-top:10px">
+      <button type="button" onclick="simpanModalAwalBulan()">Simpan</button>
+      <button type="button" class="btn-sec" onclick="tutupModalBulan()">Nanti</button>
+    </div>
+  </div>
+</div>
+
+<div id="receiptModal" class="modal-bg hide" onclick="closeReceiptModal()">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="between">
+      <b id="receiptTitle">Bukti Struk</b>
+      <button type="button" class="btn-sec btn-sm" onclick="closeReceiptModal()">✕</button>
+    </div>
+    <img id="receiptImg" class="receipt-preview" src="" alt="">
+  </div>
+</div>
+
+<script>
+const K_ACC="fn_acc_v4",K_TX="fn_tx_v4",K_CLS="fn_cls_v4",K_AWAL="fn_awal_v4",K_WALLET="fn_wallet_v4",K_THEME="fn_theme_v4",K_PROMPT_BLN="fn_prompt_bln_v4";
+const S_ACTIVE="fn_session_active_v4",S_LAST="fn_session_last_v4";
+const IDLE_LIMIT_MS=30*60*1000;
+
+const rp=n=>"Rp "+Number(n||0).toLocaleString("id-ID");
+const pad=n=>String(n).padStart(2,"0");
+const tglStr=(d=new Date())=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const blnStr=(d=new Date())=>d.getFullYear()+"-"+pad(d.getMonth()+1);
+const jamStr=(d=new Date())=>pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds());
+const loadJson=(k,fb)=>{try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(fb));}catch{return fb;}};
+const saveJson=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const getAcc=()=>loadJson(K_ACC,null);
+const getTx=()=>loadJson(K_TX,[]);
+const getCls=()=>loadJson(K_CLS,[]);
+const getAwalMap=()=>loadJson(K_AWAL,{});
+const getWallet=()=>loadJson(K_WALLET,{BNI:0,BCA:0,Cash:0});
+const getTotalWallet=()=>{const w=getWallet();return Number(w.BNI||0)+Number(w.BCA||0)+Number(w.Cash||0);};
+
+function syncAwalWithWallet(bln=blnStr()){
+  const tot=getTotalWallet();
+  const m=getAwalMap();
+  m[bln]=tot;
+  saveJson(K_AWAL,m);
+  return tot;
+}
+
+function touchSession(){
+  sessionStorage.setItem(S_ACTIVE,"1");
+  sessionStorage.setItem(S_LAST,String(Date.now()));
+}
+
+function hasValidSession(){
+  if(sessionStorage.getItem(S_ACTIVE)!=="1")return false;
+  const last=Number(sessionStorage.getItem(S_LAST)||0);
+  if(!last || (Date.now()-last)>IDLE_LIMIT_MS){
+    sessionStorage.removeItem(S_ACTIVE);
+    sessionStorage.removeItem(S_LAST);
+    return false;
+  }
+  return true;
+}
+
+["click","keydown","touchstart","scroll"].forEach(ev=>{
+  window.addEventListener(ev,()=>{
+    if(!document.getElementById("appBox").classList.contains("hide")){
+      touchSession();
+    }
+  },{passive:true});
+});
+
+function exportBackup(){
+  const payload={app:"Finote",exportedAt:new Date().toISOString(),data:{acc:getAcc(),tx:getTx(),cls:getCls(),awal:getAwalMap(),wallet:getWallet(),theme:localStorage.getItem(K_THEME)||"default",promptBln:localStorage.getItem(K_PROMPT_BLN)||""}};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download="finote-backup-"+tglStr()+".json";a.click();URL.revokeObjectURL(url);
+}
+function importBackup(ev){
+  const file=ev.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=(JSON.parse(r.result)).data||JSON.parse(r.result);
+      if(d.acc)saveJson(K_ACC,d.acc);if(Array.isArray(d.tx))saveJson(K_TX,d.tx);if(Array.isArray(d.cls))saveJson(K_CLS,d.cls);
+      if(d.awal)saveJson(K_AWAL,d.awal);if(d.wallet)saveJson(K_WALLET,d.wallet);
+      if(d.theme)changeTheme(d.theme);if(d.promptBln)localStorage.setItem(K_PROMPT_BLN,d.promptBln);
+      ev.target.value="";initAuth();
+      if(!document.getElementById("appBox").classList.contains("hide")){syncAwalWithWallet();muatFormAwal();cekLockForm();renderAll();}
+      alert("Backup berhasil di-import!");
+    }catch{alert("File backup tidak valid.");}
+  };
+  r.readAsText(file);
+}
+function isDateLocked(tgl){const today=tglStr();return !tgl||tgl<today||(tgl===today&&getCls().some(c=>c.tgl===today));}
+function isMonthLocked(bln){return bln<blnStr();}
+function changeTheme(th){document.body.className=th==="default"?"":"theme-"+th;localStorage.setItem(K_THEME,th);const s=document.getElementById("themeSelect");if(s)s.value=th;}
+function setAuthMode(m){const r=m==="register";document.getElementById("panelLogin").classList.toggle("hide",r);document.getElementById("panelReg").classList.toggle("hide",!r);document.getElementById("tabLogin").className=r?"btn-sec":"";document.getElementById("tabReg").className=r?"":"btn-sec";}
+function initAuth(){const acc=getAcc();if(acc){document.getElementById("loginInfo").textContent="Akun tersimpan di browser ini: "+acc.username;document.getElementById("inUser").value=acc.username;}else{document.getElementById("loginInfo").textContent="Belum ada akun di browser ini. Buat akun atau import backup.";}}
+function registerUser(){
+  const u=document.getElementById("regUser").value.trim(),p=document.getElementById("regPass").value,err=document.getElementById("regErr");
+  if(u.length<3){err.textContent="Username minimal 3 huruf.";return;}
+  if(p.length<4){err.textContent="Password minimal 4 karakter.";return;}
+  saveJson(K_ACC,{username:u,password:p,avatar:""});err.textContent="";setAuthMode("login");document.getElementById("inUser").value=u;document.getElementById("inPass").value="";initAuth();alert("Akun dibuat! Silakan masuk.");
+}
+function enterApp(){
+  touchSession();
+  document.getElementById("authBox").classList.add("hide");
+  document.getElementById("appBox").classList.remove("hide");
+  document.getElementById("txTgl").value=tglStr();
+  document.getElementById("awalBln").value=blnStr();
+  syncAwalWithWallet();
+  muatFormAwal();
+  cekLockForm();
+  renderAll();
+  cekPengingatAwalBulan();
+}
+function loginUser(){
+  const acc=getAcc(),u=document.getElementById("inUser").value.trim(),p=document.getElementById("inPass").value,err=document.getElementById("authErr");
+  if(!acc){err.textContent="Akun belum ada. Buat akun atau import backup.";return;}
+  if(u===acc.username&&p===acc.password){
+    err.textContent="";
+    enterApp();
+  }else{err.textContent="Username atau password salah.";}
+}
+function logoutUser(silent=false){
+  sessionStorage.removeItem(S_ACTIVE);
+  sessionStorage.removeItem(S_LAST);
+  closeDrawer();
+  document.getElementById("appBox").classList.add("hide");
+  document.getElementById("authBox").classList.remove("hide");
+  document.getElementById("inPass").value="";
+  initAuth();
+  if(silent)document.getElementById("authErr").textContent="Sesi berakhir setelah 30 menit tidak aktif.";
+}
+function openDrawer(){
+  const acc=getAcc()||{username:"Pengguna",avatar:""},w=getWallet();
+  document.getElementById("profUser").value=acc.username;document.getElementById("profPass").value="";
+  document.getElementById("drawerAvatar").src=acc.avatar||"";
+  document.getElementById("dbBni").value=Number(w.BNI||0);document.getElementById("dbBca").value=Number(w.BCA||0);document.getElementById("dbCash").value=Number(w.Cash||0);
+  document.getElementById("profMsg").textContent="";document.getElementById("dbMsg").textContent="";
+  document.getElementById("drawer").classList.remove("hide");document.getElementById("backdrop").classList.remove("hide");
+}
+function closeDrawer(){document.getElementById("drawer").classList.add("hide");document.getElementById("backdrop").classList.add("hide");}
+function uploadAvatar(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const acc=getAcc()||{username:"Pengguna",password:"1234"};acc.avatar=r.result;saveJson(K_ACC,acc);document.getElementById("drawerAvatar").src=acc.avatar;document.getElementById("hdrAvatar").src=acc.avatar;};r.readAsDataURL(f);}
+function simpanProfil(){const acc=getAcc();if(!acc)return;const u=document.getElementById("profUser").value.trim(),p=document.getElementById("profPass").value;if(u.length<3){alert("Username minimal 3 huruf.");return;}acc.username=u;if(p.length>=4)acc.password=p;saveJson(K_ACC,acc);document.getElementById("profPass").value="";document.getElementById("profMsg").textContent="Profil tersimpan.";renderAll();}
+function simpanDatabaseSaldo(){
+  const w={BNI:Number(document.getElementById("dbBni").value||0),BCA:Number(document.getElementById("dbBca").value||0),Cash:Number(document.getElementById("dbCash").value||0)};
+  saveJson(K_WALLET,w);
+  syncAwalWithWallet();
+  muatFormAwal();
+  document.getElementById("dbMsg").textContent="Database saldo & saldo awal diperbarui.";
+  renderAll();
+}
+function muatFormAwal(){
+  const bln=document.getElementById("awalBln").value||blnStr();
+  const locked=isMonthLocked(bln);
+  const val=locked ? Number(getAwalMap()[bln]??getTotalWallet()) : getTotalWallet();
+  document.getElementById("awalNominal").value=val;
+  document.getElementById("awalLockNote").textContent=locked?"Bulan ini sudah lewat dan terkunci.":"Mengikuti total saldo (BNI + BCA + Cash).";
+}
+document.getElementById("awalBln").addEventListener("change",muatFormAwal);
+function cekLockForm(){const tgl=document.getElementById("txTgl").value||tglStr(),locked=isDateLocked(tgl);document.getElementById("btnSimpanTx").disabled=locked;document.getElementById("txLockNote").textContent=locked?"Tanggal 22 Nov 2026 ke belakang atau sudah ter-closing terkunci.":"";}
+function readFileData(f){return new Promise(res=>{if(!f){res(null);return;}const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>res(null);r.readAsDataURL(f);});}
+async function tambahTransaksi(){
+  const tgl=document.getElementById("txTgl").value,tipe=document.getElementById("txTipe").value,akun=document.getElementById("txAkun").value,ket=document.getElementById("txKet").value.trim(),nom=Number(document.getElementById("txNominal").value||0),fi=document.getElementById("txReceipt");
+  if(!tgl||!ket||nom<=0)return;
+  if(isDateLocked(tgl)){alert("Tanggal ini terkunci.");return;}
+  const receipt=fi.files&&fi.files[0]?await readFileData(fi.files[0]):null;
+  const tx=getTx();tx.unshift({id:Date.now(),tgl,tipe,akun,ket,nominal:nom,jam:jamStr(),receipt});saveJson(K_TX,tx);
+  const w=getWallet();
+  w[akun]=tipe==="income"?Number(w[akun]||0)+nom:Number(w[akun]||0)-nom;
+  saveJson(K_WALLET,w);
+  syncAwalWithWallet(tgl.slice(0,7));
+  muatFormAwal();
+  document.getElementById("txKet").value="";document.getElementById("txNominal").value="";fi.value="";renderAll();
+}
+function hapusTransaksi(id){
+  const tx=getTx(),t=tx.find(x=>x.id===id);if(!t)return;
+  if(isDateLocked(t.tgl)){alert("Transaksi terkunci.");return;}
+  const w=getWallet();
+  w[t.akun]=t.tipe==="income"?Number(w[t.akun]||0)-Number(t.nominal):Number(w[t.akun]||0)+Number(t.nominal);
+  saveJson(K_WALLET,w);
+  syncAwalWithWallet(t.tgl.slice(0,7));
+  muatFormAwal();
+  saveJson(K_TX,tx.filter(x=>x.id!==id));renderAll();
+}
+function openReceiptModal(id){const it=getTx().find(x=>x.id===id);if(!it||!it.receipt)return;document.getElementById("receiptTitle").textContent="Struk: "+it.ket+" ("+it.tgl+")";document.getElementById("receiptImg").src=it.receipt;document.getElementById("receiptModal").classList.remove("hide");}
+function closeReceiptModal(){document.getElementById("receiptModal").classList.add("hide");document.getElementById("receiptImg").src="";}
+function doClosing(manual){
+  const hr=tglStr(),tx=getTx().filter(x=>x.tgl===hr),masuk=tx.filter(x=>x.tipe==="income").reduce((a,b)=>a+b.nominal,0),keluar=tx.filter(x=>x.tipe!=="income").reduce((a,b)=>a+b.nominal,0);
+  const cls=getCls(),idx=cls.findIndex(c=>c.tgl===hr),rec={tgl:hr,masuk,keluar,jam:jamStr()};
+  if(idx>=0)cls[idx]=rec;else cls.unshift(rec);saveJson(K_CLS,cls);cekLockForm();renderAll();
+  if(manual)alert("Closing "+hr+" selesai! Data hari ini terkunci.");
+}
+function cekPengingatAwalBulan(){const bln=blnStr();if(localStorage.getItem(K_PROMPT_BLN)!==bln){document.getElementById("modalBlnLbl").textContent=bln;document.getElementById("modalInVal").value="";document.getElementById("monthModal").classList.remove("hide");}}
+function tutupModalBulan(){localStorage.setItem(K_PROMPT_BLN,blnStr());document.getElementById("monthModal").classList.add("hide");}
+function simpanModalAwalBulan(){
+  const bln=blnStr(),inVal=Number(document.getElementById("modalInVal").value||0),inAkun=document.getElementById("modalInAkun").value,w=getWallet();
+  if(inVal>0){const tx=getTx();tx.unshift({id:Date.now(),tgl:tglStr(),tipe:"income",akun:inAkun,ket:"Pemasukan Awal Bulan",nominal:inVal,jam:jamStr(),receipt:null});saveJson(K_TX,tx);w[inAkun]=Number(w[inAkun]||0)+inVal;saveJson(K_WALLET,w);}
+  syncAwalWithWallet(bln);
+  muatFormAwal();tutupModalBulan();renderAll();
+}
+function resetViewFilter(){document.getElementById("viewFilterTipe").value="all";document.getElementById("viewFilterTgl").value="";renderViewOnly();}
+function renderViewOnly(){
+  const tf=document.getElementById("viewFilterTipe")?.value||"all",df=document.getElementById("viewFilterTgl")?.value||"";
+  const list=getTx().filter(x=>(tf==="all"||x.tipe===tf)&&(!df||x.tgl===df));
+  document.getElementById("viewOnlyList").innerHTML=list.map(x=>{
+    const isIn=x.tipe==="income",lk=isDateLocked(x.tgl);
+    return '<div class="item"><div><b>'+x.ket+'</b> <span class="small">('+x.akun+' • '+(isIn?"Masuk":"Keluar")+')</span><div class="small">'+x.tgl+' • '+x.jam+(lk?' <span class="badge-lock">TERKUNCI</span>':"")+'</div></div><div class="row-flex"><span class="'+(isIn?"in":"out")+'">'+(isIn?"+":"-")+rp(x.nominal)+'</span>'+(x.receipt?'<button type="button" class="btn-sec btn-sm" onclick="openReceiptModal('+x.id+')">Struk</button>':"")+'</div></div>';
+  }).join("")||'<div class="small">Tidak ada data.</div>';
+}
+function renderAll(){
+  const acc=getAcc()||{username:"Pengguna",avatar:""},w=getWallet(),tx=getTx(),hr=tglStr(),bln=blnStr(),tot=getTotalWallet(),awal=syncAwalWithWallet(bln);
+  document.getElementById("hdrName").textContent=acc.username;document.getElementById("hdrAvatar").src=acc.avatar||"";
+  document.getElementById("lblAwal").textContent=rp(awal);
+  document.getElementById("lblBni").textContent=rp(w.BNI||0);
+  document.getElementById("lblBca").textContent=rp(w.BCA||0);
+  document.getElementById("lblCash").textContent=rp(w.Cash||0);
+  const se=document.getElementById("saldoTotal");se.textContent=rp(tot);se.className=tot>=0?"in":"out";
+  document.getElementById("lblMasukHr").textContent=rp(tx.filter(x=>x.tgl===hr&&x.tipe==="income").reduce((a,b)=>a+b.nominal,0));
+  document.getElementById("lblKeluarHr").textContent=rp(tx.filter(x=>x.tgl===hr&&x.tipe!=="income").reduce((a,b)=>a+b.nominal,0));
+  renderViewOnly();
+  document.getElementById("txList").innerHTML=tx.map(x=>{
+    const lk=isDateLocked(x.tgl),isIn=x.tipe==="income";
+    return '<div class="item"><div><b>'+x.ket+'</b> <span class="small">('+x.akun+' • '+(isIn?"Masuk":"Keluar")+')</span><div class="small">'+x.tgl+' • '+x.jam+(lk?' <span class="badge-lock">TERKUNCI</span>':"")+'</div></div><div class="row-flex"><span class="'+(isIn?"in":"out")+'">'+(isIn?"+":"-")+rp(x.nominal)+'</span>'+(x.receipt?'<button type="button" class="btn-sec btn-sm" onclick="openReceiptModal('+x.id+')">Struk</button>':"")+(lk?"":'<button type="button" class="btn-red btn-sm" onclick="hapusTransaksi('+x.id+')">Hapus</button>')+'</div></div>';
+  }).join("")||'<div class="small">Belum ada transaksi.</div>';
+  document.getElementById("closeList").innerHTML=getCls().map(c=>'<div class="item"><div><b>'+c.tgl+'</b> <span class="badge-lock">TERKUNCI</span><div class="small">Tutup '+c.jam+' • Masuk '+rp(c.masuk||0)+'</div></div><div class="out">Keluar '+rp(c.keluar||0)+'</div></div>').join("")||'<div class="small">Belum ada closing.</div>';
+}
+
+changeTheme(localStorage.getItem(K_THEME)||"default");
+initAuth();
+if(getAcc() && hasValidSession()){
+  enterApp();
+}
+
+setInterval(()=>{
+  const now=new Date(),j=jamStr(now),clk=document.getElementById("hdrClock");
+  if(clk)clk.textContent=tglStr(now)+" — "+j+" (Closing 23:59:59)";
+  if(j==="23:59:59")doClosing(false);
+  if(!document.getElementById("appBox").classList.contains("hide") && !hasValidSession()){
+    logoutUser(true);
+  }
+},1000);
+</script>
+</body>
+</html>
