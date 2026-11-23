@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finote — Finhub</title>
+<style>
+:root{
+  --bg:#f4f4f5;
+  --card:#ffffff;
+  --text:#111827;
+  --muted:#6b7280;
+  --accent:#2563eb;
+  --border:#e5e7eb;
+}
+body.theme-violet{ --bg:#f3e8ff; --card:#ffffff; --text:#1e1b4b; --muted:#6b21a8; --accent:#7c3aed; --border:#e9d5ff; }
+body.theme-blue{ --bg:#e0f2fe; --card:#ffffff; --text:#0c4a6e; --muted:#0369a1; --accent:#0284c7; --border:#bae6fd; }
+body.theme-mint{ --bg:#dcfce7; --card:#ffffff; --text:#14532d; --muted:#15803d; --accent:#16a34a; --border:#bbf7d0; }
+body.theme-dark{ --bg:#111827; --card:#1f2937; --text:#f9fafb; --muted:#9ca3af; --accent:#3b82f6; --border:#374151; }
+
+*{box-sizing:border-box}
+body{
+  font-family:system-ui,-apple-system,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  margin:0;
+  padding:14px;
+  transition:background .2s,color .2s;
+}
+.wrap{max-width:520px;margin:auto}
+.box{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:14px;
+  margin-bottom:12px;
+  box-shadow:0 4px 12px rgba(0,0,0,.05);
+}
+input,select,button{
+  width:100%;
+  padding:10px 12px;
+  margin-top:8px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  font-size:15px;
+  background:var(--card);
+  color:var(--text);
+}
+button{
+  background:var(--accent);
+  color:#fff;
+  border:none;
+  font-weight:700;
+  cursor:pointer;
+}
+button:disabled{opacity:.45;cursor:not-allowed}
+.btn-sec{background:var(--border);color:var(--text)}
+.btn-red{background:#dc2626;color:#fff}
+.row-flex{display:flex;gap:8px;align-items:center}
+.between{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.avatar{
+  width:42px;height:42px;border-radius:50%;
+  object-fit:cover;border:2px solid var(--accent);background:#ddd;flex-shrink:0;
+}
+.menu-btn{width:auto;padding:8px 12px;margin:0;font-size:18px;line-height:1}
+.drawer{
+  position:fixed;top:0;right:0;width:86%;max-width:340px;height:100%;
+  background:var(--card);border-left:1px solid var(--border);
+  z-index:50;padding:16px;overflow-y:auto;box-shadow:-8px 0 24px rgba(0,0,0,.18);
+}
+.backdrop{
+  position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:40;
+}
+.modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,.55);
+  display:flex;align-items:center;justify-content:center;padding:16px;z-index:60;
+}
+.modal-card{
+  width:100%;max-width:420px;background:var(--card);
+  border-radius:14px;padding:16px;border:1px solid var(--border);
+}
+.item{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 0;border-bottom:1px solid var(--border);gap:8px;
+}
+.small{font-size:12px;color:var(--muted)}
+.in{color:#16a34a;font-weight:700}
+.out{color:#dc2626;font-weight:700}
+.big{font-size:20px;font-weight:800;margin-top:4px}
+.badge-lock{
+  font-size:11px;padding:2px 7px;border-radius:999px;
+  background:#fee2e2;color:#b91c1c;font-weight:700;
+}
+.hide{display:none !important}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- AUTH SCREEN -->
+  <div id="authBox" class="box">
+    <h3 style="margin:0 0 8px">Finote — Masuk / Buat Akun</h3>
+    <div class="row-flex">
+      <button type="button" id="tabLogin" onclick="setAuthMode('login')">Masuk</button>
+      <button type="button" id="tabReg" class="btn-sec" onclick="setAuthMode('register')">Buat Akun</button>
+    </div>
+
+    <div id="panelLogin">
+      <div class="small" id="loginInfo" style="margin-top:8px">Masukkan username dan password akunmu.</div>
+      <input id="inUser" type="text" placeholder="Username">
+      <input id="inPass" type="password" placeholder="Password">
+      <button type="button" onclick="loginUser()">Masuk</button>
+      <div id="authErr" class="small out" style="margin-top:6px"></div>
+    </div>
+
+    <div id="panelReg" class="hide">
+      <div class="small" style="margin-top:8px">Buat username & password milikmu sendiri.</div>
+      <input id="regUser" type="text" placeholder="Username baru (min 3 huruf)">
+      <input id="regPass" type="password" placeholder="Password baru (min 4 karakter)">
+      <button type="button" onclick="registerUser()">Simpan & Buat Akun</button>
+      <div id="regErr" class="small out" style="margin-top:6px"></div>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="appBox" class="hide">
+    <div class="box">
+      <div class="between">
+        <div class="row-flex">
+          <img id="hdrAvatar" class="avatar" src="" alt="Foto Profil">
+          <div>
+            <b id="hdrName">Pengguna</b>
+            <div id="hdrClock" class="small"></div>
+          </div>
+        </div>
+        <button type="button" class="menu-btn btn-sec" onclick="openDrawer()">☰</button>
+      </div>
+
+      <div class="big">Saldo Tersedia: <span id="saldoTotal" class="in">Rp 0</span></div>
+      <div class="small" style="margin-top:4px">
+        Saldo Awal Bulan: <b id="lblAwal">Rp 0</b> • Masuk Hari Ini: <b id="lblMasukHr" class="in">Rp 0</b> • Keluar Hari Ini: <b id="lblKeluarHr" class="out">Rp 0</b>
+      </div>
+      <div class="small" style="margin-top:4px">
+        BNI: <b id="lblBni">Rp 0</b> • BCA: <b id="lblBca">Rp 0</b> • Cash: <b id="lblCash">Rp 0</b>
+      </div>
+    </div>
+
+    <!-- SALDO AWAL BULAN -->
+    <div class="box">
+      <b>Saldo Awal Bulan</b>
+      <div class="row-flex">
+        <input id="awalBln" type="month">
+        <input id="awalNominal" type="number" min="0" placeholder="Saldo awal (Rp)">
+      </div>
+      <button type="button" id="btnSimpanAwal" class="btn-sec" onclick="simpanSaldoAwal()">Simpan Saldo Awal Bulan</button>
+      <div id="awalLockNote" class="small out" style="margin-top:4px"></div>
+    </div>
+
+    <!-- CATAT TRANSAKSI -->
+    <div class="box">
+      <b>Catat Transaksi</b>
+      <select id="txTipe">
+        <option value="expense">Pengeluaran (- mengurangi saldo)</option>
+        <option value="income">Pemasukan (+ menambah saldo)</option>
+      </select>
+      <select id="txAkun">
+        <option value="BNI">ATM BNI</option>
+        <option value="BCA">ATM BCA</option>
+        <option value="Cash">Cash (Tunai)</option>
+      </select>
+      <input id="txTgl" type="date" onchange="cekLockForm()">
+      <input id="txKet" type="text" placeholder="Keterangan (misal: Gaji, Makan siang, Kopi)">
+      <input id="txNominal" type="number" min="1" placeholder="Nominal (Rp)">
+      <button type="button" id="btnSimpanTx" onclick="tambahTransaksi()">Simpan Transaksi</button>
+      <div id="txLockNote" class="small out" style="margin-top:4px"></div>
+    </div>
+
+    <!-- RIWAYAT TRANSAKSI -->
+    <div class="box">
+      <b>Riwayat Transaksi</b>
+      <div id="txList"></div>
+    </div>
+
+    <!-- DAILY CLOSING -->
+    <div class="box">
+      <b>Daily Closing (23:59:59)</b>
+      <button type="button" onclick="doClosing(true)">Tutup Hari Ini Sekarang</button>
+      <div id="closeList" style="margin-top:8px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BACKDROP & SIDEBAR DRAWER (TITIK/GARIS TIGA) -->
+<div id="backdrop" class="backdrop hide" onclick="closeDrawer()"></div>
+<div id="drawer" class="drawer hide">
+  <div class="between" style="margin-bottom:12px">
+    <b>Menu Finote</b>
+    <button type="button" class="btn-sec" style="width:auto;padding:5px 10px;margin:0" onclick="closeDrawer()">✕</button>
+  </div>
+
+  <div class="box" style="padding:12px">
+    <b>1. Profil Akun & Tema</b>
+    <div class="row-flex" style="margin-top:8px">
+      <img id="drawerAvatar" class="avatar" src="" alt="Profil">
+      <input id="fileAvatar" type="file" accept="image/*" onchange="uploadAvatar(event)" style="margin:0;padding:6px;font-size:12px">
+    </div>
+    <input id="profUser" type="text" placeholder="Username baru">
+    <input id="profPass" type="password" placeholder="Password baru (min 4 karakter)">
+    <label class="small" style="display:block;margin-top:8px">Warna Latar Belakang:</label>
+    <select id="themeSelect" onchange="changeTheme(this.value)">
+      <option value="default">Putih Abu (Default)</option>
+      <option value="violet">Soft Violet</option>
+      <option value="blue">Soft Blue</option>
+      <option value="mint">Mint Fresh</option>
+      <option value="dark">Dark Mode</option>
+    </select>
+    <button type="button" onclick="simpanProfil()">Simpan Profil</button>
+    <div id="profMsg" class="small in" style="margin-top:4px"></div>
+  </div>
+
+  <div class="box" style="padding:12px">
+    <b>2. Database Saldo (BNI, BCA, Cash)</b>
+    <div class="small">Saldo masing-masing wadah terhitung ke total saldo & terpotong saat pengeluaran.</div>
+    <label class="small" style="display:block;margin-top:8px">ATM BNI</label>
+    <input id="dbBni" type="number" min="0" placeholder="0">
+    <label class="small" style="display:block;margin-top:6px">ATM BCA</label>
+    <input id="dbBca" type="number" min="0" placeholder="0">
+    <label class="small" style="display:block;margin-top:6px">Cash (Tunai)</label>
+    <input id="dbCash" type="number" min="0" placeholder="0">
+    <button type="button" onclick="simpanDatabaseSaldo()">Update Database Saldo</button>
+    <div id="dbMsg" class="small in" style="margin-top:4px"></div>
+  </div>
+
+  <button type="button" class="btn-red" onclick="logoutUser()">Keluar Akun</button>
+</div>
+
+<!-- MODAL PENGINGAT AWAL BULAN -->
+<div id="monthModal" class="modal-bg hide">
+  <div class="modal-card">
+    <h3 style="margin:0 0 6px">Pengingat Awal Bulan</h3>
+    <div id="monthModalText" class="small">Bulan baru telah dimulai. Silakan update saldo awal atau pemasukan bulan ini.</div>
+    <label class="small" style="display:block;margin-top:10px">Saldo Awal Bulan (<span id="modalBlnLbl"></span>)</label>
+    <input id="modalAwalVal" type="number" min="0" placeholder="Masukkan saldo awal (Rp)">
+    <label class="small" style="display:block;margin-top:8px">Pemasukan Awal Bulan (Opsional)</label>
+    <input id="modalInVal" type="number" min="0" placeholder="Nominal pemasukan (Rp)">
+    <select id="modalInAkun">
+      <option value="BNI">Masuk ke ATM BNI</option>
+      <option value="BCA">Masuk ke ATM BCA</option>
+      <option value="Cash">Masuk ke Cash</option>
+    </select>
+    <div class="row-flex" style="margin-top:10px">
+      <button type="button" onclick="simpanModalAwalBulan()">Simpan & Lanjutkan</button>
+      <button type="button" class="btn-sec" onclick="tutupModalBulan()">Nanti Saja</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const K_ACC="fn_acc_v3";
+const K_TX="fn_tx_v3";
+const K_CLS="fn_cls_v3";
+const K_AWAL="fn_awal_v3";
+const K_WALLET="fn_wallet_v3";
+const K_THEME="fn_theme_v3";
+const K_PROMPT_BLN="fn_prompt_bln_v3";
+
+const DEFAULT_AVATAR="data:image/svg+xml;utf8,"+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#2563eb"/><circle cx="40" cy="30" r="14" fill="#fff"/><path d="M16 68c2-14 14-22 24-22s22 8 24 22" fill="#fff"/></svg>`);
+
+const rp=n=>"Rp "+Number(n||0).toLocaleString("id-ID");
+const tglStr=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const blnStr=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+const jamStr=(d=new Date())=>`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}`;
+
+const loadJson=(k,fb)=>{try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(fb));}catch{return fb;}};
+const saveJson=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+
+function getAcc(){return loadJson(K_ACC,null);}
+function getTx(){return loadJson(K_TX,[]);}
+function getCls(){return loadJson(K_CLS,[]);}
+function getAwalMap(){return loadJson(K_AWAL,{});}
+function getWallet(){return loadJson(K_WALLET,{BNI:0,BCA:0,Cash:0});}
+
+function isDateLocked(tgl){
+  const today=tglStr();
+  if(tgl < today) return true;
+  if(tgl === today && getCls().some(c=>c.tgl===today)) return true;
+  return false;
+}
+
+function isMonthLocked(bln){
+  const curBln=blnStr();
+  return bln < curBln;
+}
+
+function changeTheme(th){
+  document.body.className = th==="default" ? "" : "theme-"+th;
+  localStorage.setItem(K_THEME,th);
+  const sel=document.getElementById("themeSelect");
+  if(sel) sel.value=th;
+}
+
+function setAuthMode(mode){
+  const isReg=mode==="register";
+  document.getElementById("panelLogin").classList.toggle("hide",isReg);
+  document.getElementById("panelReg").classList.toggle("hide",!isReg);
+  document.getElementById("tabLogin").className=isReg?"btn-sec":"";
+  document.getElementById("tabReg").className=isReg?"":"btn-sec";
+}
+
+function initAuth(){
+  const acc=getAcc();
+  if(acc){
+    document.getElementById("loginInfo").textContent=`Akun tersimpan: ${acc.username}`;
+    document.getElementById("inUser").value=acc.username;
+  }else{
+    document.getElementById("loginInfo").textContent="Belum ada akun. Klik 'Buat Akun' untuk membuat akun sendiri.";
+  }
+}
+
+function registerUser(){
+  const u=document.getElementById("regUser").value.trim();
+  const p=document.getElementById("regPass").value;
+  const err=document.getElementById("regErr");
+  if(u.length<3){err.textContent="Username minimal 3 huruf.";return;}
+  if(p.length<4){err.textContent="Password minimal 4 karakter.";return;}
+  saveJson(K_ACC,{username:u,password:p,avatar:DEFAULT_AVATAR});
+  err.textContent="";
+  setAuthMode("login");
+  document.getElementById("inUser").value=u;
+  document.getElementById("inPass").value="";
+  initAuth();
+  alert("Akun berhasil dibuat! Silakan masuk.");
+}
+
+function loginUser(){
+  const acc=getAcc();
+  const u=document.getElementById("inUser").value.trim();
+  const p=document.getElementById("inPass").value;
+  const err=document.getElementById("authErr");
+  if(!acc){err.textContent="Buat akun terlebih dahulu.";return;}
+  if(u===acc.username && p===acc.password){
+    err.textContent="";
+    document.getElementById("authBox").classList.add("hide");
+    document.getElementById("appBox").classList.remove("hide");
+    document.getElementById("txTgl").value=tglStr();
+    document.getElementById("awalBln").value=blnStr();
+    muatFormAwal();
+    cekLockForm();
+    renderAll();
+    cekPengingatAwalBulan();
+  }else{
+    err.textContent="Username atau password salah.";
+  }
+}
+
+function logoutUser(){
+  closeDrawer();
+  document.getElementById("appBox").classList.add("hide");
+  document.getElementById("authBox").classList.remove("hide");
+  document.getElementById("inPass").value="";
+  initAuth();
+}
+
+function openDrawer(){
+  const acc=getAcc()||{username:"Pengguna",avatar:DEFAULT_AVATAR};
+  const w=getWallet();
+  document.getElementById("profUser").value=acc.username;
+  document.getElementById("profPass").value="";
+  document.getElementById("drawerAvatar").src=acc.avatar||DEFAULT_AVATAR;
+  document.getElementById("dbBni").value=w.BNI||0;
+  document.getElementById("dbBca").value=w.BCA||0;
+  document.getElementById("dbCash").value=w.Cash||0;
+  document.getElementById("profMsg").textContent="";
+  document.getElementById("dbMsg").textContent="";
+  document.getElementById("drawer").classList.remove("hide");
+  document.getElementById("backdrop").classList.remove("hide");
+}
+
+function closeDrawer(){
+  document.getElementById("drawer").classList.add("hide");
+  document.getElementById("backdrop").classList.add("hide");
+}
+
+function uploadAvatar(ev){
+  const file=ev.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const acc=getAcc()||{username:"Pengguna",password:"1234"};
+    acc.avatar=reader.result;
+    saveJson(K_ACC,acc);
+    document.getElementById("drawerAvatar").src=acc.avatar;
+    document.getElementById("hdrAvatar").src=acc.avatar;
+  };
+  reader.readAsDataURL(file);
+}
+
+function simpanProfil(){
+  const acc=getAcc();
+  if(!acc)return;
+  const u=document.getElementById("profUser").value.trim();
+  const p=document.getElementById("profPass").value;
+  if(u.length<3){alert("Username minimal 3 huruf.");return;}
+  acc.username=u;
+  if(p.length>=4) acc.password=p;
+  saveJson(K_ACC,acc);
+  document.getElementById("profPass").value="";
+  document.getElementById("profMsg").textContent="Profil tersimpan.";
+  renderAll();
+}
+
+function simpanDatabaseSaldo(){
+  const w={
+    BNI:Math.max(0,Number(document.getElementById("dbBni").value||0)),
+    BCA:Math.max(0,Number(document.getElementById("dbBca").value||0)),
+    Cash:Math.max(0,Number(document.getElementById("dbCash").value||0))
+  };
+  saveJson(K_WALLET,w);
+  document.getElementById("dbMsg").textContent="Database saldo diperbarui.";
+  renderAll();
+}
+
+function muatFormAwal(){
+  const bln=document.getElementById("awalBln").value||blnStr();
+  const map=getAwalMap();
+  document.getElementById("awalNominal").value=map[bln]??"";
+  const locked=isMonthLocked(bln);
+  document.getElementById("awalNominal").disabled=locked;
+  document.getElementById("btnSimpanAwal").disabled=locked;
+  document.getElementById("awalLockNote").textContent=locked?"Bulan ini sudah lewat dan saldo awalnya terkunci.":"";
+}
+document.getElementById("awalBln").addEventListener("change",muatFormAwal);
+
+function simpanSaldoAwal(){
+  const bln=document.getElementById("awalBln").value||blnStr();
+  if(isMonthLocked(bln)){alert("Saldo awal bulan yang sudah lewat tidak bisa diubah.");return;}
+  const val=Math.max(0,Number(document.getElementById("awalNominal").value||0));
+  const map=getAwalMap();
+  map[bln]=val;
+  saveJson(K_AWAL,map);
+  renderAll();
+  alert(`Saldo awal ${bln} disimpan: ${rp(val)}`);
+}
+
+function cekLockForm(){
+  const tgl=document.getElementById("txTgl").value||tglStr();
+  const locked=isDateLocked(tgl);
+  document.getElementById("btnSimpanTx").disabled=locked;
+  document.getElementById("txLockNote").textContent=locked
+    ?"Tanggal ini sudah lewat atau sudah ter-closing, jadi tidak bisa ditambah/diedit."
+    :"";
+}
+
+function tambahTransaksi(){
+  const tgl=document.getElementById("txTgl").value;
+  const tipe=document.getElementById("txTipe").value;
+  const akun=document.getElementById("txAkun").value;
+  const ket=document.getElementById("txKet").value.trim();
+  const nom=Number(document.getElementById("txNominal").value||0);
+
+  if(!tgl||!ket||nom<=0)return;
+  if(isDateLocked(tgl)){alert("Data tanggal yang sudah lewat atau ter-closing terkunci.");return;}
+
+  const tx=getTx();
+  tx.unshift({
+    id:Date.now(),
+    tgl,
+    tipe,
+    akun,
+    ket,
+    nominal:nom,
+    jam:jamStr()
+  });
+  saveJson(K_TX,tx);
+
+  // Update saldo wadah (BNI/BCA/Cash) & kurangi saldo awal bulan jika pengeluaran
+  const w=getWallet();
+  if(tipe==="income"){
+    w[akun]=(Number(w[akun]||0))+nom;
+  }else{
+    w[akun]=Math.max(0,(Number(w[akun]||0))-nom);
+    const bln=tgl.slice(0,7);
+    const awalMap=getAwalMap();
+    if(awalMap[bln]!==undefined){
+      awalMap[bln]=Math.max(0,Number(awalMap[bln]||0)-nom);
+      saveJson(K_AWAL,awalMap);
+      muatFormAwal();
+    }
+  }
+  saveJson(K_WALLET,w);
+
+  document.getElementById("txKet").value="";
+  document.getElementById("txNominal").value="";
+  renderAll();
+}
+
+function hapusTransaksi(id){
+  const tx=getTx();
+  const target=tx.find(x=>x.id===id);
+  if(!target)return;
+  if(isDateLocked(target.tgl)){alert("Transaksi yang sudah lewat atau ter-closing tidak bisa dihapus.");return;}
+
+  // Kembalikan efek ke saldo wadah
+  const w=getWallet();
+  if(target.tipe==="income"){
+    w[target.akun]=Math.max(0,Number(w[target.akun]||0)-target.nominal);
+  }else{
+    w[target.akun]=Number(w[target.akun]||0)+target.nominal;
+  }
+  saveJson(K_WALLET,w);
+  saveJson(K_TX,tx.filter(x=>x.id!==id));
+  renderAll();
+}
+
+function doClosing(manual){
+  const hr=tglStr();
+  const tx=getTx().filter(x=>x.tgl===hr);
+  const masuk=tx.filter(x=>x.tipe==="income").reduce((a,b)=>a+b.nominal,0);
+  const keluar=tx.filter(x=>x.tipe!=="income").reduce((a,b)=>a+b.nominal,0);
+  const cls=getCls();
+  const idx=cls.findIndex(c=>c.tgl===hr);
+  const rec={tgl:hr,masuk,keluar,jam:jamStr()};
+  if(idx>=0)cls[idx]=rec; else cls.unshift(rec);
+  saveJson(K_CLS,cls);
+  cekLockForm();
+  renderAll();
+  if(manual)alert(`Closing ${hr} selesai!\nMasuk: ${rp(masuk)}\nKeluar: ${rp(keluar)}\nData hari ini sekarang terkunci.`);
+}
+
+function cekPengingatAwalBulan(){
+  const now=new Date();
+  const bln=blnStr(now);
+  const lastSeen=localStorage.getItem(K_PROMPT_BLN);
+  if(lastSeen!==bln){
+    document.getElementById("modalBlnLbl").textContent=bln;
+    document.getElementById("modalAwalVal").value=getAwalMap()[bln]??"";
+    document.getElementById("modalInVal").value="";
+    document.getElementById("monthModal").classList.remove("hide");
+  }
+}
+
+function tutupModalBulan(){
+  localStorage.setItem(K_PROMPT_BLN,blnStr());
+  document.getElementById("monthModal").classList.add("hide");
+}
+
+function simpanModalAwalBulan(){
+  const bln=blnStr();
+  const awalVal=document.getElementById("modalAwalVal").value;
+  if(awalVal!==""){
+    const map=getAwalMap();
+    map[bln]=Math.max(0,Number(awalVal||0));
+    saveJson(K_AWAL,map);
+    muatFormAwal();
+  }
+  const inVal=Number(document.getElementById("modalInVal").value||0);
+  const inAkun=document.getElementById("modalInAkun").value;
+  if(inVal>0){
+    const tx=getTx();
+    tx.unshift({
+      id:Date.now(),
+      tgl:tglStr(),
+      tipe:"income",
+      akun:inAkun,
+      ket:"Pemasukan Awal Bulan",
+      nominal:inVal,
+      jam:jamStr()
+    });
+    saveJson(K_TX,tx);
+    const w=getWallet();
+    w[inAkun]=Number(w[inAkun]||0)+inVal;
+    saveJson(K_WALLET,w);
+  }
+  tutupModalBulan();
+  renderAll();
+}
+
+function renderAll(){
+  const acc=getAcc()||{username:"Pengguna",avatar:DEFAULT_AVATAR};
+  const w=getWallet();
+  const tx=getTx();
+  const hr=tglStr();
+  const bln=blnStr();
+  const awal=Number(getAwalMap()[bln]||0);
+  const totalWallet=Number(w.BNI||0)+Number(w.BCA||0)+Number(w.Cash||0);
+
+  document.getElementById("hdrName").textContent=acc.username;
+  document.getElementById("hdrAvatar").src=acc.avatar||DEFAULT_AVATAR;
+  document.getElementById("lblAwal").textContent=rp(awal);
+  document.getElementById("lblBni").textContent=rp(w.BNI||0);
+  document.getElementById("lblBca").textContent=rp(w.BCA||0);
+  document.getElementById("lblCash").textContent=rp(w.Cash||0);
+
+  const saldoTampil=totalWallet > 0 ? totalWallet : awal;
+  const saldoEl=document.getElementById("saldoTotal");
+  saldoEl.textContent=rp(saldoTampil);
+  saldoEl.className=saldoTampil>=0?"in":"out";
+
+  const masukHr=tx.filter(x=>x.tgl===hr&&x.tipe==="income").reduce((a,b)=>a+b.nominal,0);
+  const keluarHr=tx.filter(x=>x.tgl===hr&&x.tipe!=="income").reduce((a,b)=>a+b.nominal,0);
+  document.getElementById("lblMasukHr").textContent=rp(masukHr);
+  document.getElementById("lblKeluarHr").textContent=rp(keluarHr);
+
+  document.getElementById("txList").innerHTML=tx.map(x=>{
+    const locked=isDateLocked(x.tgl);
+    const isIn=x.tipe==="income";
+    return `
+      <div class="item">
+        <div>
+          <b>${x.ket}</b> <span class="small">(${x.akun} • ${isIn?"Masuk":"Keluar"})</span>
+          <div class="small">${x.tgl} • ${x.jam} ${locked?'<span class="badge-lock">TERKUNCI</span>':""}</div>
+        </div>
+        <div class="row-flex">
+          <span class="${isIn?"in":"out"}">${isIn?"+":"-"}${rp(x.nominal)}</span>
+          ${locked?"":`<button type="button" class="btn-red" style="width:auto;padding:5px 9px;margin:0;font-size:12px" onclick="hapusTransaksi(${x.id})">Hapus</button>`}
+        </div>
+      </div>
+    `;
+  }).join("") || `<div class="small">Belum ada transaksi.</div>`;
+
+  document.getElementById("closeList").innerHTML=getCls().map(c=>`
+    <div class="item">
+      <div>
+        <b>${c.tgl}</b> <span class="badge-lock">TERKUNCI</span>
+        <div class="small">Tutup ${c.jam} • Masuk ${rp(c.masuk||0)}</div>
+      </div>
+      <div class="out">Keluar ${rp(c.keluar||0)}</div>
+    </div>
+  `).join("") || `<div class="small">Belum ada rekap closing.</div>`;
+}
+
+changeTheme(localStorage.getItem(K_THEME)||"default");
+initAuth();
+
+setInterval(()=>{
+  const now=new Date();
+  const j=jamStr(now);
+  const clk=document.getElementById("hdrClock");
+  if(clk) clk.textContent=`${tglStr(now)} — ${j} (Closing 23:59:59)`;
+  if(j==="23:59:59") doClosing(false);
+},1000);
+</script>
+</body>
+</html>
