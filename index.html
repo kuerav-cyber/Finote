@@ -11,35 +11,73 @@ input,select,button{width:100%;padding:10px;margin-top:8px;border-radius:8px;bor
 button{background:#2563eb;color:#fff;border:none;font-weight:bold;cursor:pointer}
 .btn-row{display:flex;gap:8px}
 .btn-sec{background:#e5e7eb;color:#111827}
+.tab-btn{flex:1;margin-top:0;background:#e5e7eb;color:#374151}
+.tab-btn.active{background:#2563eb;color:#fff}
 .row{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding:8px 0;gap:8px}
 .small{font-size:12px;color:#666}
 .hide{display:none}
 .in{color:#059669;font-weight:bold}
 .out{color:#dc2626;font-weight:bold}
 .stat{font-size:16px;font-weight:bold;margin-top:6px}
+.err{color:#dc2626;font-size:12px;margin-top:6px}
+.ok{color:#059669;font-size:12px;margin-top:6px}
 </style>
 </head>
 <body>
 
-<div id="login" class="box">
-<h3>Login Finote</h3>
-<div class="small">PIN awal: 1234</div>
-<input id="pin" type="password" inputmode="numeric" placeholder="Masukkan PIN">
-<button onclick="login()">Masuk</button>
-<div id="err" class="small" style="color:red;margin-top:6px"></div>
+<div id="authBox" class="box">
+<h3 style="margin:0 0 10px 0">Finote — Akses Akun</h3>
+
+<div class="btn-row" style="margin-bottom:10px">
+<button type="button" id="tabLoginBtn" class="tab-btn active" onclick="switchAuthTab('login')">Masuk</button>
+<button type="button" id="tabRegBtn" class="tab-btn" onclick="switchAuthTab('register')">Buat Akun</button>
 </div>
 
-<div id="app" class="hide">
-<div class="box">
-<div style="display:flex;justify-content:space-between;align-items:center">
-<b>Finote — Keuangan Bulanan & Harian</b>
-<button class="btn-sec" style="width:auto;padding:5px 10px;margin:0;font-size:12px" onclick="gantiPin()">Ganti PIN</button>
+<!-- FORM LOGIN -->
+<div id="formLogin">
+<div class="small" id="loginHint">Masukkan username dan password akunmu.</div>
+<input id="loginUser" type="text" autocomplete="username" placeholder="Username">
+<input id="loginPass" type="password" autocomplete="current-password" placeholder="Password">
+<button type="button" onclick="doLogin()">Masuk</button>
+<div id="loginMsg" class="err"></div>
 </div>
-<div id="jam" class="small" style="margin-top:4px"></div>
+
+<!-- FORM BUAT AKUN -->
+<div id="formRegister" class="hide">
+<div class="small">Buat username dan password milikmu sendiri (disimpan di browser ini).</div>
+<input id="regUser" type="text" autocomplete="username" placeholder="Buat Username (min. 3 karakter)">
+<input id="regPass" type="password" autocomplete="new-password" placeholder="Buat Password (min. 4 karakter)">
+<input id="regPass2" type="password" autocomplete="new-password" placeholder="Ulangi Password">
+<button type="button" onclick="doRegister()">Simpan & Buat Akun</button>
+<div id="regMsg" class="err"></div>
+</div>
+</div>
+
+<div id="appBox" class="hide">
+<div class="box">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+<div>
+<b>Finote — <span id="activeUserLabel"></span></b>
+<div id="jam" class="small" style="margin-top:2px"></div>
+</div>
+<div style="display:flex;gap:6px">
+<button type="button" class="btn-sec" style="width:auto;padding:6px 10px;margin:0;font-size:12px" onclick="toggleAccountPanel()">Akun</button>
+<button type="button" class="btn-sec" style="width:auto;padding:6px 10px;margin:0;font-size:12px" onclick="logout()">Keluar</button>
+</div>
+</div>
 <div class="stat">Sisa Saldo Bulan Ini: <span id="saldoBulan" class="in">Rp 0</span></div>
 <div class="small" style="margin-top:4px">
-Saldo Awal Bulan: <b id="lblAwal">Rp 0</b> • Pemasukan Hari Ini: <b id="masukHr" class="in">Rp 0</b> • Pengeluaran Hari Ini: <b id="keluarHr" class="out">Rp 0</b>
+Saldo Awal Bulan: <b id="lblAwal">Rp 0</b> • Masuk Hari Ini: <b id="masukHr" class="in">Rp 0</b> • Keluar Hari Ini: <b id="keluarHr" class="out">Rp 0</b>
 </div>
+</div>
+
+<!-- PANEL UBAH USERNAME & PASSWORD -->
+<div id="accountPanel" class="box hide">
+<b>Ubah Username & Password</b>
+<input id="editUser" type="text" placeholder="Username baru">
+<input id="editPass" type="password" placeholder="Password baru (min. 4 karakter)">
+<button type="button" onclick="simpanAkunBaru()">Simpan Perubahan Akun</button>
+<div id="accMsg" class="ok"></div>
 </div>
 
 <div class="box">
@@ -48,7 +86,7 @@ Saldo Awal Bulan: <b id="lblAwal">Rp 0</b> • Pemasukan Hari Ini: <b id="masukH
 <input id="bulanSaldo" type="month" style="margin-top:8px">
 <input id="nominalAwal" type="number" min="0" placeholder="Saldo awal (Rp)">
 </div>
-<button class="btn-sec" onclick="simpanSaldoAwal()">Simpan Saldo Awal Bulan</button>
+<button type="button" class="btn-sec" onclick="simpanSaldoAwal()">Simpan Saldo Awal Bulan</button>
 </div>
 
 <div class="box">
@@ -60,7 +98,7 @@ Saldo Awal Bulan: <b id="lblAwal">Rp 0</b> • Pemasukan Hari Ini: <b id="masukH
 <input id="tgl" type="date">
 <input id="ket" type="text" placeholder="Keterangan (misal: Gaji, Makan siang, Kopi)">
 <input id="biaya" type="number" min="1" placeholder="Nominal (Rp)">
-<button onclick="tambah()">Simpan Transaksi</button>
+<button type="button" onclick="tambah()">Simpan Transaksi</button>
 </div>
 
 <div class="box">
@@ -70,13 +108,13 @@ Saldo Awal Bulan: <b id="lblAwal">Rp 0</b> • Pemasukan Hari Ini: <b id="masukH
 
 <div class="box">
 <b>Daily Closing (23:59:59)</b>
-<button onclick="closing(true)">Tutup Hari Ini Sekarang</button>
+<button type="button" onclick="closing(true)">Tutup Hari Ini Sekarang</button>
 <div id="rekap" style="margin-top:8px"></div>
 </div>
 </div>
 
 <script>
-const K_EXP="fn_exp_v2",K_CLS="fn_cls_v2",K_PIN="fn_pin",K_SALDO="fn_saldo_awal_v1";
+const K_EXP="fn_exp_v2",K_CLS="fn_cls_v2",K_USER="fn_user_v1",K_SALDO="fn_saldo_awal_v1";
 const rp=n=>"Rp "+Number(n||0).toLocaleString("id-ID");
 const tglStr=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const blnStr=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
@@ -85,21 +123,102 @@ const getD=k=>JSON.parse(localStorage.getItem(k)||"[]");
 const setD=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 const getSaldoMap=()=>JSON.parse(localStorage.getItem(K_SALDO)||"{}");
 
-function login(){
-const ben=localStorage.getItem(K_PIN)||"1234";
-if(document.getElementById("pin").value===ben){
-login.classList.add("hide");app.classList.remove("hide");
+function getSavedAccount(){
+const raw=localStorage.getItem(K_USER);
+if(!raw)return null;
+try{return JSON.parse(raw);}catch{return null;}
+}
+
+function switchAuthTab(mode){
+const isReg=mode==="register";
+tabLoginBtn.classList.toggle("active",!isReg);
+tabRegBtn.classList.toggle("active",isReg);
+formLogin.classList.toggle("hide",isReg);
+formRegister.classList.toggle("hide",!isReg);
+loginMsg.textContent="";
+regMsg.textContent="";
+}
+
+function initAuthView(){
+const acc=getSavedAccount();
+if(!acc){
+loginHint.textContent="Belum ada akun di browser ini. Klik 'Buat Akun' untuk membuat username & password.";
+loginUser.placeholder="Username (buat dulu di tab Buat Akun)";
+}else{
+loginHint.textContent="Akun terdaftar: "+acc.username+". Masukkan password untuk masuk.";
+loginUser.value=acc.username;
+}
+}
+
+function doRegister(){
+const u=String(regUser.value||"").trim();
+const p=String(regPass.value||"");
+const p2=String(regPass2.value||"");
+if(u.length<3){regMsg.textContent="Username minimal 3 karakter.";return;}
+if(p.length<4){regMsg.textContent="Password minimal 4 karakter.";return;}
+if(p!==p2){regMsg.textContent="Konfirmasi password tidak sama.";return;}
+localStorage.setItem(K_USER,JSON.stringify({username:u,password:p}));
+regMsg.textContent="";
+regPass.value="";regPass2.value="";
+switchAuthTab("login");
+loginUser.value=u;
+loginPass.value="";
+loginHint.textContent="Akun '"+u+"' berhasil dibuat! Silakan masukkan password.";
+}
+
+function doLogin(){
+const acc=getSavedAccount();
+const u=String(loginUser.value||"").trim();
+const p=String(loginPass.value||"");
+if(!acc){
+loginMsg.textContent="Belum ada akun. Pindah ke tab 'Buat Akun' dulu ya.";
+return;
+}
+if(u===acc.username&&p===acc.password){
+loginMsg.textContent="";
+loginPass.value="";
+authBox.classList.add("hide");
+appBox.classList.remove("hide");
+activeUserLabel.textContent=acc.username;
 tgl.value=tglStr();
 bulanSaldo.value=blnStr();
 muatFormSaldoAwal();
 render();
-}else{err.textContent="PIN salah";}
+}else{
+loginMsg.textContent="Username atau password salah.";
+}
 }
 
-function gantiPin(){
-const p=prompt("Masukkan PIN baru (min 4 karakter):");
-if(p&&p.trim().length>=4){localStorage.setItem(K_PIN,p.trim());alert("PIN tersimpan.");}
+function logout(){
+accountPanel.classList.add("hide");
+appBox.classList.add("hide");
+authBox.classList.remove("hide");
+initAuthView();
 }
+
+function toggleAccountPanel(){
+const acc=getSavedAccount();
+if(acc){
+editUser.value=acc.username;
+editPass.value="";
+accMsg.textContent="";
+}
+accountPanel.classList.toggle("hide");
+}
+
+function simpanAkunBaru(){
+const u=String(editUser.value||"").trim();
+const p=String(editPass.value||"");
+if(u.length<3){accMsg.className="err";accMsg.textContent="Username minimal 3 karakter.";return;}
+if(p.length<4){accMsg.className="err";accMsg.textContent="Password minimal 4 karakter.";return;}
+localStorage.setItem(K_USER,JSON.stringify({username:u,password:p}));
+activeUserLabel.textContent=u;
+editPass.value="";
+accMsg.className="ok";
+accMsg.textContent="Username & password berhasil diperbarui!";
+}
+
+loginPass.addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
 
 function muatFormSaldoAwal(){
 const m=getSaldoMap();
@@ -167,15 +286,17 @@ keluarHr.textContent=rp(keluarToday);
 
 list.innerHTML=exp.map(x=>{
 const isIn=x.tipe==="income";
-return `<div class="row"><div><b>${x.ket}</b> <span class="small">(${isIn?"Masuk":"Keluar"})</span><div class="small">${x.tgl} • Jam ${x.jam}</div></div><div style="display:flex;align-items:center;gap:6px"><span class="${isIn?"in":"out"}">${isIn?"+":"-"}${rp(x.biaya)}</span><button style="width:auto;padding:4px 8px;margin:0;background:#dc2626" onclick="hapus(${x.id})">x</button></div></div>`;
+return `<div class="row"><div><b>${x.ket}</b> <span class="small">(${isIn?"Masuk":"Keluar"})</span><div class="small">${x.tgl} • Jam ${x.jam}</div></div><div style="display:flex;align-items:center;gap:6px"><span class="${isIn?"in":"out"}">${isIn?"+":"-"}${rp(x.biaya)}</span><button type="button" style="width:auto;padding:4px 8px;margin:0;background:#dc2626" onclick="hapus(${x.id})">x</button></div></div>`;
 }).join("")||`<div class="small">Belum ada transaksi</div>`;
 
 rekap.innerHTML=getD(K_CLS).map(c=>`<div class="row"><div><b>${c.tgl}</b><div class="small">Tutup ${c.jam} • Masuk ${rp(c.masuk||0)}</div></div><div class="out">${rp(c.keluar||0)}</div></div>`).join("")||`<div class="small">Belum ada closing</div>`;
 }
 
+initAuthView();
+
 setInterval(()=>{
 const now=new Date(),j=jamStr(now);
-jam.textContent=tglStr(now)+" — "+j+" (Closing 23:59:59)";
+if(jam)jam.textContent=tglStr(now)+" — "+j+" (Closing 23:59:59)";
 if(j==="23:59:59")closing(false);
 },1000);
 </script>
