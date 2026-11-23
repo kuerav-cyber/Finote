@@ -29,6 +29,7 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
 .between{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);background:var(--accent);flex-shrink:0}
 .menu-btn{width:auto;padding:8px 12px;margin:0;font-size:18px;line-height:1}
+.brand-title{font-size:16px;font-weight:800;letter-spacing:.2px}
 .kas-label{text-align:center;font-size:12px;letter-spacing:.6px;color:var(--muted);font-weight:700}
 .kas-big{text-align:center;font-size:32px;font-weight:800;margin:6px 0 8px}
 .kas-sub{text-align:center;font-size:12px;color:var(--muted)}
@@ -50,7 +51,13 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
 <body>
 <div class="wrap">
   <div id="authBox" class="box">
-    <h3 style="margin:0 0 10px">Finote</h3>
+    <div class="between" style="margin-bottom:10px">
+      <h3 class="brand-title" style="margin:0">Finote</h3>
+      <select id="authLangSelect" onchange="changeLang(this.value)" style="width:auto;margin:0;padding:6px 10px;font-size:12px">
+        <option value="id">ID</option>
+        <option value="en">ENG</option>
+      </select>
+    </div>
     <div class="row-flex">
       <button type="button" id="tabLogin" onclick="setAuthMode('login')">Masuk</button>
       <button type="button" id="tabReg" class="btn-sec" onclick="setAuthMode('register')">Buat Akun</button>
@@ -69,7 +76,7 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
       <div id="regErr" class="small out" style="margin-top:6px"></div>
     </div>
     <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
-      <div class="small">Import Backup (.json)</div>
+      <div class="small" id="lblAuthImport">Import Backup (.json)</div>
       <input id="authImportFile" type="file" accept=".json,application/json" onchange="importBackup(event)" style="padding:6px;font-size:12px">
     </div>
   </div>
@@ -80,20 +87,27 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
         <div class="row-flex">
           <img id="hdrAvatar" class="avatar" src="" alt="">
           <div>
+            <div class="brand-title">Finote</div>
             <b id="hdrName">Pengguna</b>
             <div id="hdrClock" class="small"></div>
             <div id="syncStatus" class="small"></div>
           </div>
         </div>
-        <button type="button" class="menu-btn btn-sec" onclick="openDrawer()">☰</button>
+        <div class="row-flex" style="gap:6px">
+          <select id="langSelect" onchange="changeLang(this.value)" style="width:auto;margin:0;padding:7px 9px;font-size:12px">
+            <option value="id">ID</option>
+            <option value="en">ENG</option>
+          </select>
+          <button type="button" class="menu-btn btn-sec" onclick="openDrawer()">☰</button>
+        </div>
       </div>
     </div>
 
     <div class="box">
-      <div class="kas-label">TOTAL SALDO KAS SAAT INI</div>
+      <div class="kas-label" id="lblKasTitle">TOTAL SALDO KAS SAAT INI</div>
       <div id="saldoTotal" class="kas-big out">Rp 0</div>
       <div class="kas-sub">
-        Saldo Awal: <b id="lblAwal">Rp 0</b> • Masuk: <b id="lblMasukHr" class="in">Rp 0</b> • Keluar: <b id="lblKeluarHr" class="out">Rp 0</b>
+        <span id="lblSubAwal">Saldo Awal</span>: <b id="lblAwal">Rp 0</b> • <span id="lblSubMasuk">Masuk</span>: <b id="lblMasukHr" class="in">Rp 0</b> • <span id="lblSubKeluar">Keluar</span>: <b id="lblKeluarHr" class="out">Rp 0</b>
       </div>
       <div class="kas-sub" style="margin-top:4px">
         BNI: <b id="lblBni">Rp 0</b> • BCA: <b id="lblBca">Rp 0</b> • Cash: <b id="lblCash">Rp 0</b>
@@ -101,21 +115,21 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
     </div>
 
     <div class="box">
-      <h3 style="margin:0 0 6px">Tambah Transaksi Baru</h3>
+      <h3 id="hAddTx" style="margin:0 0 6px">Tambah Transaksi Baru</h3>
 
-      <label>Nama Transaksi / Keperluan</label>
+      <label id="lblTxKet">Nama Transaksi / Keperluan</label>
       <input id="txKet" type="text" placeholder="Contoh: Makan malam, Penjualan barang">
 
       <div class="row-flex">
         <div class="col-half">
-          <label>Jenis Transaksi</label>
+          <label id="lblTxTipe">Jenis Transaksi</label>
           <select id="txTipe">
             <option value="expense">Pengeluaran (Keluar)</option>
             <option value="income">Pemasukan (Masuk)</option>
           </select>
         </div>
         <div class="col-half">
-          <label>Akun / Bank</label>
+          <label id="lblTxAkun">Akun / Bank</label>
           <select id="txAkun">
             <option value="BCA">BCA</option>
             <option value="BNI">BNI</option>
@@ -124,13 +138,13 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
         </div>
       </div>
 
-      <label>Tanggal</label>
+      <label id="lblTxTgl">Tanggal</label>
       <input id="txTgl" type="date" onchange="cekLockForm()">
 
-      <label>Nominal Transaksi (Rp)</label>
+      <label id="lblTxNominal">Nominal Transaksi (Rp)</label>
       <input id="txNominal" type="number" min="1" placeholder="0">
 
-      <label>Bukti / Struk (Opsional):</label>
+      <label id="lblTxReceipt">Bukti / Struk (Opsional):</label>
       <input id="txReceipt" type="file" accept="image/*" style="padding:6px;font-size:13px">
 
       <button type="button" id="btnSimpanTx" style="margin-top:14px" onclick="tambahTransaksi()">Simpan Transaksi</button>
@@ -139,8 +153,8 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
 
     <div class="box">
       <div class="between" style="margin-bottom:8px">
-        <h3 style="margin:0">Lihat Data Pemasukan &amp; Pengeluaran</h3>
-        <span class="pill-ro">Mode baca saja</span>
+        <h3 id="hViewOnly" style="margin:0">Lihat Data Pemasukan &amp; Pengeluaran</h3>
+        <span class="pill-ro" id="pillReadOnly">Mode baca saja</span>
       </div>
       <div class="row-flex">
         <select id="viewFilterTipe" onchange="renderViewOnly()">
@@ -150,18 +164,18 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
         </select>
         <input id="viewFilterTgl" type="date" onchange="renderViewOnly()">
       </div>
-      <button type="button" class="btn-sec" style="margin-top:10px" onclick="resetViewFilter()">Tampilkan Semua Tanggal</button>
+      <button type="button" id="btnResetView" class="btn-sec" style="margin-top:10px" onclick="resetViewFilter()">Tampilkan Semua Tanggal</button>
       <div id="viewOnlyList" style="margin-top:8px"></div>
     </div>
 
     <div class="box">
-      <h3 style="margin:0 0 6px">Riwayat Transaksi</h3>
+      <h3 id="hTxList" style="margin:0 0 6px">Riwayat Transaksi</h3>
       <div id="txList"></div>
     </div>
 
     <div class="box">
       <div class="between">
-        <h3 style="margin:0">Saldo Awal Bulan</h3>
+        <h3 id="hAwalBln" style="margin:0">Saldo Awal Bulan</h3>
         <input id="awalBln" type="month" style="width:auto;margin:0;padding:6px 10px;font-size:13px">
       </div>
       <input id="awalNominal" type="number" readonly>
@@ -169,8 +183,8 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
     </div>
 
     <div class="box">
-      <h3 style="margin:0 0 8px">Daily Closing (23:59:59)</h3>
-      <button type="button" onclick="doClosing(true)">Tutup Hari Ini</button>
+      <h3 id="hClosing" style="margin:0 0 8px">Daily Closing (23:59:59)</h3>
+      <button type="button" id="btnClosing" onclick="doClosing(true)">Tutup Hari Ini</button>
       <div id="closeList" style="margin-top:8px"></div>
     </div>
   </div>
@@ -179,12 +193,12 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
 <div id="backdrop" class="backdrop hide" onclick="closeDrawer()"></div>
 <div id="drawer" class="drawer hide">
   <div class="between" style="margin-bottom:12px">
-    <b>Menu</b>
+    <b id="drawerTitle">Menu</b>
     <button type="button" class="btn-sec btn-sm" onclick="closeDrawer()">✕</button>
   </div>
 
   <div class="box" style="padding:12px">
-    <b>Profil &amp; Warna Latar</b>
+    <b id="lblDrawerProf">Profil &amp; Warna Latar</b>
     <div class="row-flex" style="margin-top:8px">
       <img id="drawerAvatar" class="avatar" src="" alt="">
       <input id="fileAvatar" type="file" accept="image/*" onchange="uploadAvatar(event)" style="margin:0;padding:6px;font-size:12px">
@@ -198,35 +212,35 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
       <option value="mint">Mint Fresh</option>
       <option value="dark">Dark Mode</option>
     </select>
-    <button type="button" onclick="simpanProfil()">Simpan</button>
+    <button type="button" id="btnSaveProf" onclick="simpanProfil()">Simpan</button>
     <div id="profMsg" class="small in" style="margin-top:4px"></div>
   </div>
 
   <div class="box" style="padding:12px">
-    <b>Database Saldo</b>
+    <b id="lblDrawerDb">Database Saldo</b>
     <label>BNI</label>
     <input id="dbBni" type="number" step="any" placeholder="0">
     <label>BCA</label>
     <input id="dbBca" type="number" step="any" placeholder="0">
     <label>Cash</label>
     <input id="dbCash" type="number" step="any" placeholder="0">
-    <button type="button" onclick="simpanDatabaseSaldo()">Simpan Saldo</button>
+    <button type="button" id="btnSaveDb" onclick="simpanDatabaseSaldo()">Simpan Saldo</button>
     <div id="dbMsg" class="small in" style="margin-top:4px"></div>
   </div>
 
   <div class="box" style="padding:12px">
-    <b>Sinkronisasi &amp; Backup</b>
-    <button type="button" class="btn-sec" onclick="syncFromCloud(true)">Sinkronkan Cloud</button>
-    <button type="button" onclick="exportBackup()">Export (.json)</button>
+    <b id="lblDrawerSync">Sinkronisasi &amp; Backup</b>
+    <button type="button" id="btnSyncCloud" class="btn-sec" onclick="syncFromCloud(true)">Sinkronkan Cloud</button>
+    <button type="button" id="btnExportJson" onclick="exportBackup()">Export (.json)</button>
     <input id="drawerImportFile" type="file" accept=".json,application/json" onchange="importBackup(event)" style="padding:6px;font-size:12px">
   </div>
 
-  <button type="button" class="btn-red" onclick="logoutUser()">Keluar</button>
+  <button type="button" id="btnLogout" class="btn-red" onclick="logoutUser()">Keluar</button>
 </div>
 
 <div id="monthModal" class="modal-bg hide">
   <div class="modal-card">
-    <h3 style="margin:0 0 6px">Awal Bulan <span id="modalBlnLbl"></span></h3>
+    <h3 style="margin:0 0 6px"><span id="lblMonthModal">Awal Bulan</span> <span id="modalBlnLbl"></span></h3>
     <input id="modalInVal" type="number" min="0" placeholder="Pemasukan awal bulan (Rp)">
     <select id="modalInAkun">
       <option value="BCA">BCA</option>
@@ -234,8 +248,8 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
       <option value="Cash">Cash</option>
     </select>
     <div class="row-flex" style="margin-top:10px">
-      <button type="button" onclick="simpanModalAwalBulan()">Simpan</button>
-      <button type="button" class="btn-sec" onclick="tutupModalBulan()">Nanti</button>
+      <button type="button" id="btnSaveMonth" onclick="simpanModalAwalBulan()">Simpan</button>
+      <button type="button" id="btnLaterMonth" class="btn-sec" onclick="tutupModalBulan()">Nanti</button>
     </div>
   </div>
 </div>
@@ -254,9 +268,133 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
 const CLOUD_BIN_ID="";
 const CLOUD_API_KEY="";
 
-const K_ACC="fn_acc_v5",K_TX="fn_tx_v5",K_CLS="fn_cls_v5",K_AWAL="fn_awal_v5",K_WALLET="fn_wallet_v5",K_THEME="fn_theme_v5",K_PROMPT_BLN="fn_prompt_bln_v5";
+const K_ACC="fn_acc_v5",K_TX="fn_tx_v5",K_CLS="fn_cls_v5",K_AWAL="fn_awal_v5",K_WALLET="fn_wallet_v5",K_THEME="fn_theme_v5",K_PROMPT_BLN="fn_prompt_bln_v5",K_LANG="fn_lang_v5";
 const S_ACTIVE="fn_session_active_v5",S_LAST="fn_session_last_v5";
 const IDLE_LIMIT_MS=30*60*1000;
+
+const I18N={
+  id:{
+    login:"Masuk",register:"Buat Akun",saveAcc:"Simpan Akun",
+    inUser:"Username",inPass:"Password",newPass:"Password baru",
+    accPrefix:"Akun: ",noAcc:"Belum ada akun.",
+    importBackup:"Import Backup (.json)",
+    kasTitle:"TOTAL SALDO KAS SAAT INI",awal:"Saldo Awal",masuk:"Masuk",keluar:"Keluar",
+    addTx:"Tambah Transaksi Baru",txKet:"Nama Transaksi / Keperluan",
+    txKetPh:"Contoh: Makan malam, Penjualan barang",
+    txTipe:"Jenis Transaksi",expOpt:"Pengeluaran (Keluar)",incOpt:"Pemasukan (Masuk)",
+    txAkun:"Akun / Bank",txTgl:"Tanggal",txNominal:"Nominal Transaksi (Rp)",
+    txReceipt:"Bukti / Struk (Opsional):",saveTx:"Simpan Transaksi",
+    viewOnly:"Lihat Data Pemasukan & Pengeluaran",readOnly:"Mode baca saja",
+    allOpt:"Semua",incShort:"Pemasukan",expShort:"Pengeluaran",
+    resetView:"Tampilkan Semua Tanggal",txList:"Riwayat Transaksi",
+    awalBln:"Saldo Awal Bulan",closing:"Daily Closing (23:59:59)",closeBtn:"Tutup Hari Ini",
+    confirmClose:"Yakin ingin melakukan Daily Closing untuk hari ini? (Ya / Tidak)",
+    closeDone:"Closing selesai.",locked:"Terkunci",noData:"Tidak ada data.",noTx:"Belum ada transaksi.",noClose:"Belum ada closing.",
+    menu:"Menu",profTheme:"Profil & Warna Latar",save:"Simpan",saved:"Tersimpan.",
+    dbSaldo:"Database Saldo",saveDb:"Simpan Saldo",
+    syncBackup:"Sinkronisasi & Backup",syncCloud:"Sinkronkan Cloud",exportJson:"Export (.json)",logout:"Keluar",
+    monthModal:"Awal Bulan",monthInPh:"Pemasukan awal bulan (Rp)",later:"Nanti",
+    synced:"Tersinkron ",saving:"Menyimpan...",syncing:"Menyinkronkan...",localOnly:"Lokal saja",
+    sessionExpired:"Sesi berakhir (30 menit).",wrongCreds:"Username atau password salah.",
+    fillCreds:"Lengkapi username dan password.",minUser:"Username minimal 3 huruf.",minPass:"Password minimal 4 karakter.",
+    importOk:"Import berhasil.",invalidFile:"File tidak valid."
+  },
+  en:{
+    login:"Sign In",register:"Create Account",saveAcc:"Save Account",
+    inUser:"Username",inPass:"Password",newPass:"New password",
+    accPrefix:"Account: ",noAcc:"No account yet.",
+    importBackup:"Import Backup (.json)",
+    kasTitle:"CURRENT TOTAL CASH BALANCE",awal:"Opening Balance",masuk:"In",keluar:"Out",
+    addTx:"Add New Transaction",txKet:"Transaction Name / Purpose",
+    txKetPh:"Example: Dinner, Item sales",
+    txTipe:"Transaction Type",expOpt:"Expense (Out)",incOpt:"Income (In)",
+    txAkun:"Account / Bank",txTgl:"Date",txNominal:"Transaction Amount (Rp)",
+    txReceipt:"Receipt / Proof (Optional):",saveTx:"Save Transaction",
+    viewOnly:"View Income & Expense",readOnly:"Read only",
+    allOpt:"All",incShort:"Income",expShort:"Expense",
+    resetView:"Show All Dates",txList:"Transaction History",
+    awalBln:"Monthly Opening Balance",closing:"Daily Closing (23:59:59)",closeBtn:"Close Today",
+    confirmClose:"Are you sure you want to run Daily Closing for today? (Yes / No)",
+    closeDone:"Closing completed.",locked:"Locked",noData:"No data.",noTx:"No transactions yet.",noClose:"No closing yet.",
+    menu:"Menu",profTheme:"Profile & Background",save:"Save",saved:"Saved.",
+    dbSaldo:"Balance Database",saveDb:"Save Balance",
+    syncBackup:"Sync & Backup",syncCloud:"Sync Cloud",exportJson:"Export (.json)",logout:"Sign Out",
+    monthModal:"Month Start",monthInPh:"Month opening income (Rp)",later:"Later",
+    synced:"Synced ",saving:"Saving...",syncing:"Syncing...",localOnly:"Local only",
+    sessionExpired:"Session expired (30 mins).",wrongCreds:"Incorrect username or password.",
+    fillCreds:"Enter username and password.",minUser:"Username min 3 chars.",minPass:"Password min 4 chars.",
+    importOk:"Import successful.",invalidFile:"Invalid file."
+  }
+};
+
+function getLang(){return localStorage.getItem(K_LANG)==="en"?"en":"id";}
+const t=(k)=>I18N[getLang()][k] ?? I18N.id[k] ?? k;
+
+function applyLangUI(){
+  const lang=getLang();
+  document.documentElement.lang=lang;
+  ["authLangSelect","langSelect"].forEach(id=>{const el=document.getElementById(id);if(el)el.value=lang;});
+  document.getElementById("tabLogin").textContent=t("login");
+  document.getElementById("tabReg").textContent=t("register");
+  document.getElementById("inUser").placeholder=t("inUser");
+  document.getElementById("inPass").placeholder=t("inPass");
+  document.getElementById("btnLogin").textContent=t("login");
+  document.getElementById("regUser").placeholder=t("inUser");
+  document.getElementById("regPass").placeholder=t("inPass");
+  document.querySelector("#panelReg button").textContent=t("saveAcc");
+  document.getElementById("lblAuthImport").textContent=t("importBackup");
+  document.getElementById("lblKasTitle").textContent=t("kasTitle");
+  document.getElementById("lblSubAwal").textContent=t("awal");
+  document.getElementById("lblSubMasuk").textContent=t("masuk");
+  document.getElementById("lblSubKeluar").textContent=t("keluar");
+  document.getElementById("hAddTx").textContent=t("addTx");
+  document.getElementById("lblTxKet").textContent=t("txKet");
+  document.getElementById("txKet").placeholder=t("txKetPh");
+  document.getElementById("lblTxTipe").textContent=t("txTipe");
+  document.getElementById("txTipe").options[0].textContent=t("expOpt");
+  document.getElementById("txTipe").options[1].textContent=t("incOpt");
+  document.getElementById("lblTxAkun").textContent=t("txAkun");
+  document.getElementById("lblTxTgl").textContent=t("txTgl");
+  document.getElementById("lblTxNominal").textContent=t("txNominal");
+  document.getElementById("lblTxReceipt").textContent=t("txReceipt");
+  document.getElementById("btnSimpanTx").textContent=t("saveTx");
+  document.getElementById("hViewOnly").textContent=t("viewOnly");
+  document.getElementById("pillReadOnly").textContent=t("readOnly");
+  document.getElementById("viewFilterTipe").options[0].textContent=t("allOpt");
+  document.getElementById("viewFilterTipe").options[1].textContent=t("incShort");
+  document.getElementById("viewFilterTipe").options[2].textContent=t("expShort");
+  document.getElementById("btnResetView").textContent=t("resetView");
+  document.getElementById("hTxList").textContent=t("txList");
+  document.getElementById("hAwalBln").textContent=t("awalBln");
+  document.getElementById("hClosing").textContent=t("closing");
+  document.getElementById("btnClosing").textContent=t("closeBtn");
+  document.getElementById("drawerTitle").textContent=t("menu");
+  document.getElementById("lblDrawerProf").textContent=t("profTheme");
+  document.getElementById("profUser").placeholder=t("inUser");
+  document.getElementById("profPass").placeholder=t("newPass");
+  document.getElementById("btnSaveProf").textContent=t("save");
+  document.getElementById("lblDrawerDb").textContent=t("dbSaldo");
+  document.getElementById("btnSaveDb").textContent=t("saveDb");
+  document.getElementById("lblDrawerSync").textContent=t("syncBackup");
+  document.getElementById("btnSyncCloud").textContent=t("syncCloud");
+  document.getElementById("btnExportJson").textContent=t("exportJson");
+  document.getElementById("btnLogout").textContent=t("logout");
+  document.getElementById("lblMonthModal").textContent=t("monthModal");
+  document.getElementById("modalInVal").placeholder=t("monthInPh");
+  document.getElementById("btnSaveMonth").textContent=t("save");
+  document.getElementById("btnLaterMonth").textContent=t("later");
+  initAuth();
+  if(!document.getElementById("appBox").classList.contains("hide")){
+    muatFormAwal();
+    cekLockForm();
+    renderAll();
+  }
+}
+
+function changeLang(lang){
+  localStorage.setItem(K_LANG,lang==="en"?"en":"id");
+  applyLangUI();
+}
 
 const rp=n=>"Rp "+Number(n||0).toLocaleString("id-ID");
 const pad=n=>String(n).padStart(2,"0");
@@ -276,7 +414,7 @@ function isCloudReady(){return Boolean(CLOUD_BIN_ID && CLOUD_API_KEY);}
 function setSyncLabel(msg){const el=document.getElementById("syncStatus");if(el)el.textContent=msg;}
 
 function collectAllState(){
-  return{updatedAt:Date.now(),acc:getAcc(),tx:getTx(),cls:getCls(),awal:getAwalMap(),wallet:getWallet(),theme:localStorage.getItem(K_THEME)||"default",promptBln:localStorage.getItem(K_PROMPT_BLN)||""};
+  return{updatedAt:Date.now(),acc:getAcc(),tx:getTx(),cls:getCls(),awal:getAwalMap(),wallet:getWallet(),theme:localStorage.getItem(K_THEME)||"default",promptBln:localStorage.getItem(K_PROMPT_BLN)||"",lang:getLang()};
 }
 
 function applyState(d){
@@ -288,6 +426,7 @@ function applyState(d){
   if(d.wallet&&typeof d.wallet==="object")saveJson(K_WALLET,d.wallet);
   if(d.theme)changeTheme(d.theme);
   if(d.promptBln!==undefined)localStorage.setItem(K_PROMPT_BLN,d.promptBln);
+  if(d.lang)localStorage.setItem(K_LANG,d.lang==="en"?"en":"id");
 }
 
 async function fetchCloudRecord(){
@@ -301,35 +440,35 @@ async function fetchCloudRecord(){
 async function saveToCloud(){
   if(!isCloudReady())return;
   try{
-    setSyncLabel("Menyimpan...");
+    setSyncLabel(t("saving"));
     const res=await fetch("https://api.jsonbin.io/v3/b/"+CLOUD_BIN_ID,{
       method:"PUT",
       headers:{"Content-Type":"application/json","X-Master-Key":CLOUD_API_KEY},
       body:JSON.stringify(collectAllState())
     });
     if(!res.ok)throw new Error("cloud");
-    setSyncLabel("Tersinkron "+jamStr());
+    setSyncLabel(t("synced")+jamStr());
   }catch{
-    setSyncLabel("Lokal saja");
+    setSyncLabel(t("localOnly"));
   }
 }
 
 async function syncFromCloud(showAlert=false){
   if(!isCloudReady())return null;
   try{
-    setSyncLabel("Menyinkronkan...");
+    setSyncLabel(t("syncing"));
     const rec=await fetchCloudRecord();
     if(rec && rec.acc){
       applyState(rec);
-      initAuth();
+      applyLangUI();
       if(!document.getElementById("appBox").classList.contains("hide")){syncAwalWithWallet();muatFormAwal();cekLockForm();renderAll();}
-      setSyncLabel("Tersinkron "+jamStr());
-      if(showAlert)alert("Tersinkron.");
+      setSyncLabel(t("synced")+jamStr());
+      if(showAlert)alert(t("synced").trim());
       return rec;
     }
     return null;
   }catch{
-    if(showAlert)alert("Gagal sinkron.");
+    if(showAlert)alert(t("localOnly"));
     return null;
   }
 }
@@ -373,11 +512,11 @@ function importBackup(ev){
   r.onload=async()=>{
     try{
       const d=(JSON.parse(r.result)).data||JSON.parse(r.result);
-      applyState(d);ev.target.value="";initAuth();
+      applyState(d);ev.target.value="";applyLangUI();
       if(!document.getElementById("appBox").classList.contains("hide")){syncAwalWithWallet();muatFormAwal();cekLockForm();renderAll();}
       await saveToCloud();
-      alert("Import berhasil.");
-    }catch{alert("File tidak valid.");}
+      alert(t("importOk"));
+    }catch{alert(t("invalidFile"));}
   };
   r.readAsText(file);
 }
@@ -386,12 +525,12 @@ function isDateLocked(tgl){const today=tglStr();return !tgl||tgl<today||(tgl===t
 function isMonthLocked(bln){return bln<blnStr();}
 function changeTheme(th){document.body.className=th==="default"?"":"theme-"+th;localStorage.setItem(K_THEME,th);const s=document.getElementById("themeSelect");if(s)s.value=th;}
 function setAuthMode(m){const r=m==="register";document.getElementById("panelLogin").classList.toggle("hide",r);document.getElementById("panelReg").classList.toggle("hide",!r);document.getElementById("tabLogin").className=r?"btn-sec":"";document.getElementById("tabReg").className=r?"":"btn-sec";}
-function initAuth(){const acc=getAcc();if(acc){document.getElementById("loginInfo").textContent="Akun: "+acc.username;if(!document.getElementById("inUser").value)document.getElementById("inUser").value=acc.username;}else{document.getElementById("loginInfo").textContent="Belum ada akun.";}}
+function initAuth(){const acc=getAcc();if(acc){document.getElementById("loginInfo").textContent=t("accPrefix")+acc.username;if(!document.getElementById("inUser").value)document.getElementById("inUser").value=acc.username;}else{document.getElementById("loginInfo").textContent=t("noAcc");}}
 
 async function registerUser(){
   const u=document.getElementById("regUser").value.trim(),p=document.getElementById("regPass").value,err=document.getElementById("regErr");
-  if(u.length<3){err.textContent="Username minimal 3 huruf.";return;}
-  if(p.length<4){err.textContent="Password minimal 4 karakter.";return;}
+  if(u.length<3){err.textContent=t("minUser");return;}
+  if(p.length<4){err.textContent=t("minPass");return;}
   saveJson(K_ACC,{username:u,password:p,avatar:""});err.textContent="";setAuthMode("login");document.getElementById("inUser").value=u;document.getElementById("inPass").value="";initAuth();await saveToCloud();
 }
 
@@ -407,14 +546,14 @@ function enterApp(){
 async function loginUser(){
   const u=document.getElementById("inUser").value.trim(),p=document.getElementById("inPass").value,err=document.getElementById("authErr"),btn=document.getElementById("btnLogin");
   err.textContent="";
-  if(!u||!p){err.textContent="Lengkapi username dan password.";return;}
+  if(!u||!p){err.textContent=t("fillCreds");return;}
   if(isCloudReady()){
-    try{btn.disabled=true;const rec=await fetchCloudRecord();if(rec&&rec.acc)applyState(rec);}catch{}finally{btn.disabled=false;}
+    try{btn.disabled=true;const rec=await fetchCloudRecord();if(rec&&rec.acc){applyState(rec);applyLangUI();}}catch{}finally{btn.disabled=false;}
   }
   const acc=getAcc();
-  if(!acc){err.textContent="Akun belum ada.";return;}
+  if(!acc){err.textContent=t("noAcc");return;}
   if(u===acc.username && p===acc.password)enterApp();
-  else err.textContent="Username atau password salah.";
+  else err.textContent=t("wrongCreds");
 }
 
 function logoutUser(silent=false){
@@ -424,7 +563,7 @@ function logoutUser(silent=false){
   document.getElementById("authBox").classList.remove("hide");
   document.getElementById("inPass").value="";
   initAuth();
-  if(silent)document.getElementById("authErr").textContent="Sesi berakhir (30 menit).";
+  if(silent)document.getElementById("authErr").textContent=t("sessionExpired");
 }
 
 function openDrawer(){
@@ -455,13 +594,13 @@ async function simpanProfil(){
   const u=document.getElementById("profUser").value.trim(),p=document.getElementById("profPass").value;
   if(u.length<3)return;
   acc.username=u;if(p.length>=4)acc.password=p;
-  saveJson(K_ACC,acc);document.getElementById("profPass").value="";document.getElementById("profMsg").textContent="Tersimpan.";
+  saveJson(K_ACC,acc);document.getElementById("profPass").value="";document.getElementById("profMsg").textContent=t("saved");
   renderAll();await saveToCloud();
 }
 
 async function simpanDatabaseSaldo(){
   const w={BNI:Number(document.getElementById("dbBni").value||0),BCA:Number(document.getElementById("dbBca").value||0),Cash:Number(document.getElementById("dbCash").value||0)};
-  saveJson(K_WALLET,w);syncAwalWithWallet();muatFormAwal();document.getElementById("dbMsg").textContent="Tersimpan.";
+  saveJson(K_WALLET,w);syncAwalWithWallet();muatFormAwal();document.getElementById("dbMsg").textContent=t("saved");
   renderAll();await saveToCloud();
 }
 
@@ -469,14 +608,14 @@ function muatFormAwal(){
   const bln=document.getElementById("awalBln").value||blnStr(),locked=isMonthLocked(bln);
   const val=locked ? Number(getAwalMap()[bln]??getTotalWallet()) : getTotalWallet();
   document.getElementById("awalNominal").value=val;
-  document.getElementById("awalLockNote").textContent=locked?"Terkunci":"";
+  document.getElementById("awalLockNote").textContent=locked?t("locked"):"";
 }
 document.getElementById("awalBln").addEventListener("change",muatFormAwal);
 
 function cekLockForm(){
   const tgl=document.getElementById("txTgl").value||tglStr(),locked=isDateLocked(tgl);
   document.getElementById("btnSimpanTx").disabled=locked;
-  document.getElementById("txLockNote").textContent=locked?"Terkunci":"";
+  document.getElementById("txLockNote").textContent=locked?t("locked"):"";
 }
 
 function readFileData(f){return new Promise(res=>{if(!f){res(null);return;}const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>res(null);r.readAsDataURL(f);});}
@@ -508,10 +647,11 @@ function openReceiptModal(id){const it=getTx().find(x=>x.id===id);if(!it||!it.re
 function closeReceiptModal(){document.getElementById("receiptModal").classList.add("hide");document.getElementById("receiptImg").src="";}
 
 async function doClosing(manual){
+  if(manual && !confirm(t("confirmClose")))return;
   const hr=tglStr(),tx=getTx().filter(x=>x.tgl===hr),masuk=tx.filter(x=>x.tipe==="income").reduce((a,b)=>a+b.nominal,0),keluar=tx.filter(x=>x.tipe!=="income").reduce((a,b)=>a+b.nominal,0);
   const cls=getCls(),idx=cls.findIndex(c=>c.tgl===hr),rec={tgl:hr,masuk,keluar,jam:jamStr()};
   if(idx>=0)cls[idx]=rec;else cls.unshift(rec);saveJson(K_CLS,cls);cekLockForm();renderAll();await saveToCloud();
-  if(manual)alert("Closing "+hr+" selesai.");
+  if(manual)alert(hr+" — "+t("closeDone"));
 }
 
 function cekPengingatAwalBulan(){const bln=blnStr();if(localStorage.getItem(K_PROMPT_BLN)!==bln){document.getElementById("modalBlnLbl").textContent=bln;document.getElementById("modalInVal").value="";document.getElementById("monthModal").classList.remove("hide");}}
@@ -532,8 +672,8 @@ function renderViewOnly(){
   const list=getTx().filter(x=>(tf==="all"||x.tipe===tf)&&(!df||x.tgl===df));
   document.getElementById("viewOnlyList").innerHTML=list.map(x=>{
     const isIn=x.tipe==="income",lk=isDateLocked(x.tgl);
-    return '<div class="item"><div><b>'+x.ket+'</b> <span class="small">('+x.akun+')</span><div class="small">'+x.tgl+' • '+x.jam+(lk?' <span class="badge-lock">TERKUNCI</span>':"")+'</div></div><div class="row-flex"><span class="'+(isIn?"in":"out")+'">'+(isIn?"+":"-")+rp(x.nominal)+'</span>'+(x.receipt?'<button type="button" class="btn-sec btn-sm" onclick="openReceiptModal('+x.id+')">Struk</button>':"")+'</div></div>';
-  }).join("")||'<div class="small">Tidak ada data.</div>';
+    return '<div class="item"><div><b>'+x.ket+'</b> <span class="small">('+x.akun+')</span><div class="small">'+x.tgl+' • '+x.jam+(lk?' <span class="badge-lock">'+t("locked")+'</span>':"")+'</div></div><div class="row-flex"><span class="'+(isIn?"in":"out")+'">'+(isIn?"+":"-")+rp(x.nominal)+'</span>'+(x.receipt?'<button type="button" class="btn-sec btn-sm" onclick="openReceiptModal('+x.id+')">Struk</button>':"")+'</div></div>';
+  }).join("")||'<div class="small">'+t("noData")+'</div>';
 }
 
 function renderAll(){
@@ -547,13 +687,13 @@ function renderAll(){
   renderViewOnly();
   document.getElementById("txList").innerHTML=tx.map(x=>{
     const lk=isDateLocked(x.tgl),isIn=x.tipe==="income";
-    return '<div class="item"><div><b>'+x.ket+'</b> <span class="small">('+x.akun+')</span><div class="small">'+x.tgl+' • '+x.jam+(lk?' <span class="badge-lock">TERKUNCI</span>':"")+'</div></div><div class="row-flex"><span class="'+(isIn?"in":"out")+'">'+(isIn?"+":"-")+rp(x.nominal)+'</span>'+(x.receipt?'<button type="button" class="btn-sec btn-sm" onclick="openReceiptModal('+x.id+')">Struk</button>':"")+(lk?"":'<button type="button" class="btn-red btn-sm" onclick="hapusTransaksi('+x.id+')">Hapus</button>')+'</div></div>';
-  }).join("")||'<div class="small">Belum ada transaksi.</div>';
-  document.getElementById("closeList").innerHTML=getCls().map(c=>'<div class="item"><div><b>'+c.tgl+'</b> <span class="badge-lock">TERKUNCI</span><div class="small">'+c.jam+' • Masuk '+rp(c.masuk||0)+'</div></div><div class="out">Keluar '+rp(c.keluar||0)+'</div></div>').join("")||'<div class="small">Belum ada closing.</div>';
+    return '<div class="item"><div><b>'+x.ket+'</b> <span class="small">('+x.akun+')</span><div class="small">'+x.tgl+' • '+x.jam+(lk?' <span class="badge-lock">'+t("locked")+'</span>':"")+'</div></div><div class="row-flex"><span class="'+(isIn?"in":"out")+'">'+(isIn?"+":"-")+rp(x.nominal)+'</span>'+(x.receipt?'<button type="button" class="btn-sec btn-sm" onclick="openReceiptModal('+x.id+')">Struk</button>':"")+(lk?"":'<button type="button" class="btn-red btn-sm" onclick="hapusTransaksi('+x.id+')">Hapus</button>')+'</div></div>';
+  }).join("")||'<div class="small">'+t("noTx")+'</div>';
+  document.getElementById("closeList").innerHTML=getCls().map(c=>'<div class="item"><div><b>'+c.tgl+'</b> <span class="badge-lock">'+t("locked")+'</span><div class="small">'+c.jam+' • '+t("masuk")+' '+rp(c.masuk||0)+'</div></div><div class="out">'+t("keluar")+' '+rp(c.keluar||0)+'</div></div>').join("")||'<div class="small">'+t("noClose")+'</div>';
 }
 
 changeTheme(localStorage.getItem(K_THEME)||"default");
-initAuth();
+applyLangUI();
 if(isCloudReady()){
   syncFromCloud(false).then(()=>{if(getAcc() && hasValidSession())enterApp();});
 }else if(getAcc() && hasValidSession()){
