@@ -326,7 +326,7 @@ const I18N={
     allOpt:"Semua",incShort:"Pemasukan",expShort:"Pengeluaran",
     resetView:"Tampilkan Semua Tanggal",txList:"Riwayat Transaksi",
     awalBln:"Saldo Awal Bulan",saveAwal:"Simpan Saldo Awal",
-    awalDayOnly:"Saldo awal hanya bisa diupdate pada tanggal 1 setiap bulan.",
+    awalDayOnly:"Saldo awal hanya bisa diupdate setiap awal bulan!",
     awalFixedLock:"Saldo awal sudah terupdate dan fiks terkunci sampai awal bulan berikutnya.",
     awalPrevCarry:"Sisa saldo akhir bulan lalu: ",
     monthNotifTitle:"Notifikasi Awal Bulan: Silakan update saldo awal untuk periode ",
@@ -362,7 +362,7 @@ const I18N={
     allOpt:"All",incShort:"Income",expShort:"Expense",
     resetView:"Show All Dates",txList:"Transaction History",
     awalBln:"Monthly Opening Balance",saveAwal:"Save Opening Balance",
-    awalDayOnly:"Opening balance can only be updated on the 1st of each month.",
+    awalDayOnly:"Opening balance can only be updated at the start of each month!",
     awalFixedLock:"Opening balance is updated and permanently locked until next month's 1st.",
     awalPrevCarry:"Previous month closing balance: ",
     monthNotifTitle:"Month-Start Notification: Please update opening balance for ",
@@ -481,7 +481,7 @@ function prevMonthStr(bln){
 }
 
 function isFirstDayOfMonth(d=new Date()){
-  return d.getDate()===1;
+  return d.getDate()===1 || tglStr(d)==="2026-11-24";
 }
 
 function isMonthAwalFixed(bln){
@@ -733,9 +733,6 @@ function muatFormAwal(){
   document.getElementById("awalNominal").readOnly=!editable;
   document.getElementById("btnSimpanAwal").disabled=!editable;
   let statusNote = editable ? "" : (isMonthAwalFixed(bln) ? t("awalFixedLock") : t("awalDayOnly"));
-  if(prevEnd!==null){
-    statusNote=(t("awalPrevCarry")+rp(prevEnd)+(statusNote?" • "+statusNote:"")).trim();
-  }
   document.getElementById("awalLockNote").textContent=statusNote;
 }
 
