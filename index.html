@@ -1,380 +1,571 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kelola Transaksi Keuangan</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
-                            500: '#0284c7',
-                            600: '#0088cc',
-                            700: '#0369a1',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- Google Fonts Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #eef7fc;
-        }
-        .card-box {
-            background-color: #ffffff;
-            border: 1.5px solid #d0e8f8;
-            border-radius: 16px;
-            box-shadow: 0 4px 12px rgba(0, 136, 204, 0.05);
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finote — Finhub</title>
+<style>
+:root{
+  --bg:#eef4fb;--card:#ffffff;--text:#0f172a;--muted:#64748b;--accent:#0284c7;--border:#dbeafe;
+}
+body.theme-violet{--bg:#f3e8ff;--card:#ffffff;--text:#1e1b4b;--muted:#6b21a8;--accent:#7c3aed;--border:#e9d5ff}
+body.theme-blue{--bg:#e0f2fe;--card:#ffffff;--text:#0c4a6e;--muted:#0369a1;--accent:#0284c7;--border:#bae6fd}
+body.theme-mint{--bg:#dcfce7;--card:#ffffff;--text:#14532d;--muted:#15803d;--accent:#16a34a;--border:#bbf7d0}
+body.theme-dark{--bg:#0f172a;--card:#1e293b;--text:#f8fafc;--muted:#94a3b8;--accent:#38bdf8;--border:#334155}
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);margin:0;padding:14px}
+.wrap{max-width:520px;margin:auto}
+.box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 4px 14px rgba(15,23,42,.04)}
+label{display:block;font-size:13px;font-weight:700;margin-top:10px;color:var(--text)}
+input,select,button{width:100%;padding:11px 13px;margin-top:6px;border-radius:12px;border:1px solid #cbd5e1;font-size:15px;background:var(--card);color:var(--text)}
+button{background:var(--accent);color:#fff;border:none;font-weight:700;cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}
+.btn-sec{background:#e0f2fe;color:#0369a1}
+body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
+.btn-red{background:#dc2626;color:#fff}
+.btn-sm{width:auto;padding:6px 10px;margin:0;font-size:12px;border-radius:9px}
+.row-flex{display:flex;gap:10px;align-items:center}
+.col-half{flex:1;min-width:0}
+.between{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);background:var(--accent);flex-shrink:0}
+.menu-btn{width:auto;padding:8px 12px;margin:0;font-size:18px;line-height:1}
+.kas-label{text-align:center;font-size:12px;letter-spacing:.6px;color:var(--muted);font-weight:700}
+.kas-big{text-align:center;font-size:32px;font-weight:800;margin:6px 0 8px}
+.kas-sub{text-align:center;font-size:12px;color:var(--muted)}
+.drawer{position:fixed;top:0;right:0;width:86%;max-width:340px;height:100%;background:var(--card);border-left:1px solid var(--border);z-index:50;padding:16px;overflow-y:auto}
+.backdrop{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:40}
+.modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:60}
+.modal-card{width:100%;max-width:440px;background:var(--card);border-radius:16px;padding:16px;border:1px solid var(--border);max-height:90vh;overflow-y:auto}
+.item{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border);gap:8px}
+.item:last-child{border-bottom:none}
+.small{font-size:12px;color:var(--muted)}
+.in{color:#16a34a;font-weight:700}
+.out{color:#dc2626;font-weight:700}
+.pill-ro{font-size:12px;padding:4px 10px;border-radius:999px;background:#e0f2fe;color:#0284c7;font-weight:700}
+.badge-lock{font-size:11px;padding:2px 7px;border-radius:999px;background:#fee2e2;color:#b91c1c;font-weight:700}
+.receipt-preview{max-width:100%;max-height:360px;border-radius:12px;display:block;margin:10px auto 0;border:1px solid var(--border)}
+.hide{display:none!important}
+</style>
 </head>
-<body class="p-4 sm:p-6 min-h-screen max-w-lg mx-auto pb-20">
-
-    <!-- Header Ringkasan Saldo -->
-    <div class="card-box p-5 mb-5 text-center bg-gradient-to-br from-white to-sky-50">
-        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Saldo Kas Saat Ini</span>
-        <h1 id="total-saldo-display" class="text-3xl font-extrabold text-slate-800 mt-1">Rp 0</h1>
+<body>
+<div class="wrap">
+  <div id="authBox" class="box">
+    <h3 style="margin:0 0 10px">Finote</h3>
+    <div class="row-flex">
+      <button type="button" id="tabLogin" onclick="setAuthMode('login')">Masuk</button>
+      <button type="button" id="tabReg" class="btn-sec" onclick="setAuthMode('register')">Buat Akun</button>
     </div>
-
-    <!-- 1. Form Input Transaksi -->
-    <div class="card-box p-5 mb-5">
-        <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <span>Tambah Transaksi Baru</span>
-        </h2>
-        
-        <form id="form-transaksi" class="space-y-4">
-            <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Transaksi / Keperluan</label>
-                <input type="text" id="deskripsi" placeholder="Contoh: Makan malam, Penjualan barang" required 
-                       class="w-full px-3 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Transaksi</label>
-                    <select id="jenis" required class="w-full px-3 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white">
-                        <option value="Keluar">Pengeluaran (Keluar)</option>
-                        <option value="Masuk">Pemasukan (Masuk)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Akun / Bank</label>
-                    <select id="akun" required class="w-full px-3 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white">
-                        <option value="BCA">BCA</option>
-                        <option value="Tunai">Tunai / Cash</option>
-                        <option value="Mandiri">Mandiri</option>
-                        <option value="BRI">BRI</option>
-                        <option value="E-Wallet">E-Wallet</option>
-                    </select>
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Nominal Transaksi (Rp)</label>
-                <input type="number" id="nominal" placeholder="0" min="1" required 
-                       class="w-full px-3 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none">
-            </div>
-
-            <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Bukti / Struk (Opsional):</label>
-                <input type="file" id="bukti-file" class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer border border-slate-200 rounded-xl p-1">
-            </div>
-
-            <button type="submit" 
-                    class="w-full py-3.5 px-4 bg-brand-600 hover:bg-brand-700 active:scale-[0.99] transition-all text-white font-bold rounded-xl shadow-md text-sm mt-2">
-                Simpan Transaksi
-            </button>
-        </form>
+    <div id="panelLogin">
+      <div class="small" id="loginInfo" style="margin-top:8px"></div>
+      <input id="inUser" type="text" placeholder="Username">
+      <input id="inPass" type="password" placeholder="Password">
+      <button type="button" id="btnLogin" onclick="loginUser()">Masuk</button>
+      <div id="authErr" class="small out" style="margin-top:6px"></div>
     </div>
+    <div id="panelReg" class="hide">
+      <input id="regUser" type="text" placeholder="Username">
+      <input id="regPass" type="password" placeholder="Password">
+      <button type="button" onclick="registerUser()">Simpan Akun</button>
+      <div id="regErr" class="small out" style="margin-top:6px"></div>
+    </div>
+    <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+      <div class="small">Import Backup (.json)</div>
+      <input id="authImportFile" type="file" accept=".json,application/json" onchange="importBackup(event)" style="padding:6px;font-size:12px">
+    </div>
+  </div>
 
-    <!-- 2. Lihat Data Pemasukan & Pengeluaran -->
-    <div class="card-box p-5 mb-5">
-        <div class="flex justify-between items-start mb-3">
-            <h2 class="text-base font-bold text-slate-800 leading-tight">Lihat Data Pemasukan &amp; Pengeluaran</h2>
-            <span class="text-xs text-brand-600 font-medium bg-brand-50 px-2 py-1 rounded-md border border-brand-100 whitespace-nowrap">Mode baca saja</span>
+  <div id="appBox" class="hide">
+    <div class="box" style="padding:12px 16px">
+      <div class="between">
+        <div class="row-flex">
+          <img id="hdrAvatar" class="avatar" src="" alt="">
+          <div>
+            <b id="hdrName">Pengguna</b>
+            <div id="hdrClock" class="small"></div>
+            <div id="syncStatus" class="small"></div>
+          </div>
         </div>
+        <button type="button" class="menu-btn btn-sec" onclick="openDrawer()">☰</button>
+      </div>
+    </div>
 
-        <div class="grid grid-cols-2 gap-2 mb-3">
-            <select id="filter-jenis" onchange="renderSemuaData()" class="px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none bg-white font-medium text-slate-700">
-                <option value="Semua">Semua</option>
-                <option value="Masuk font-semibold">Pemasukan</option>
-                <option value="Keluar">Pengeluaran</option>
-            </select>
-            <input type="date" id="filter-tanggal" onchange="renderSemuaData()" class="px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none bg-white text-slate-700">
+    <div class="box">
+      <div class="kas-label">TOTAL SALDO KAS SAAT INI</div>
+      <div id="saldoTotal" class="kas-big out">Rp 0</div>
+      <div class="kas-sub">
+        Saldo Awal: <b id="lblAwal">Rp 0</b> • Masuk: <b id="lblMasukHr" class="in">Rp 0</b> • Keluar: <b id="lblKeluarHr" class="out">Rp 0</b>
+      </div>
+      <div class="kas-sub" style="margin-top:4px">
+        BNI: <b id="lblBni">Rp 0</b> • BCA: <b id="lblBca">Rp 0</b> • Cash: <b id="lblCash">Rp 0</b>
+      </div>
+    </div>
+
+    <div class="box">
+      <h3 style="margin:0 0 6px">Tambah Transaksi Baru</h3>
+
+      <label>Nama Transaksi / Keperluan</label>
+      <input id="txKet" type="text" placeholder="Contoh: Makan malam, Penjualan barang">
+
+      <div class="row-flex">
+        <div class="col-half">
+          <label>Jenis Transaksi</label>
+          <select id="txTipe">
+            <option value="expense">Pengeluaran (Keluar)</option>
+            <option value="income">Pemasukan (Masuk)</option>
+          </select>
         </div>
-
-        <button onclick="resetFilterTanggal()" class="w-full py-2.5 px-4 bg-sky-200 hover:bg-sky-300 text-sky-900 font-bold rounded-xl text-xs transition-colors mb-4">
-            Tampilkan Semua Tanggal
-        </button>
-
-        <!-- Container Daftar Semua Data -->
-        <div id="container-semua-data" class="space-y-3">
-            <!-- Rendered by JS -->
+        <div class="col-half">
+          <label>Akun / Bank</label>
+          <select id="txAkun">
+            <option value="BCA">BCA</option>
+            <option value="BNI">BNI</option>
+            <option value="Cash">Cash</option>
+          </select>
         </div>
+      </div>
+
+      <label>Tanggal</label>
+      <input id="txTgl" type="date" onchange="cekLockForm()">
+
+      <label>Nominal Transaksi (Rp)</label>
+      <input id="txNominal" type="number" min="1" placeholder="0">
+
+      <label>Bukti / Struk (Opsional):</label>
+      <input id="txReceipt" type="file" accept="image/*" style="padding:6px;font-size:13px">
+
+      <button type="button" id="btnSimpanTx" style="margin-top:14px" onclick="tambahTransaksi()">Simpan Transaksi</button>
+      <div id="txLockNote" class="small out" style="margin-top:6px"></div>
     </div>
 
-    <!-- 3. Kelola Transaksi Hari Ini -->
-    <div class="card-box p-5 mb-5">
-        <h2 class="text-base font-bold text-slate-800 mb-3">Kelola Transaksi Hari Ini</h2>
-        <!-- Teks keterangan terkunci sengaja dihapus sesuai permintaan -->
-
-        <!-- Container Transaksi Hari Ini -->
-        <div id="container-hari-ini" class="space-y-3">
-            <!-- Rendered by JS -->
-        </div>
+    <div class="box">
+      <div class="between" style="margin-bottom:8px">
+        <h3 style="margin:0">Lihat Data Pemasukan &amp; Pengeluaran</h3>
+        <span class="pill-ro">Mode baca saja</span>
+      </div>
+      <div class="row-flex">
+        <select id="viewFilterTipe" onchange="renderViewOnly()">
+          <option value="all">Semua</option>
+          <option value="income">Pemasukan</option>
+          <option value="expense">Pengeluaran</option>
+        </select>
+        <input id="viewFilterTgl" type="date" onchange="renderViewOnly()">
+      </div>
+      <button type="button" class="btn-sec" style="margin-top:10px" onclick="resetViewFilter()">Tampilkan Semua Tanggal</button>
+      <div id="viewOnlyList" style="margin-top:8px"></div>
     </div>
 
-    <!-- 4. Daily Closing (23:59:59) -->
-    <div class="card-box p-5 mb-6">
-        <h2 class="text-base font-bold text-slate-800 mb-3">Daily Closing (23:59:59)</h2>
-        
-        <button onclick="prosesClosing()" 
-                class="w-full py-3.5 px-4 bg-brand-600 hover:bg-brand-700 active:scale-[0.99] transition-all text-white font-bold rounded-xl shadow-md text-sm mb-3">
-            Tutup Hari Ini Sekarang
-        </button>
-
-        <p id="status-closing" class="text-xs font-medium text-slate-500">Belum ada closing.</p>
+    <div class="box">
+      <h3 style="margin:0 0 6px">Riwayat Transaksi</h3>
+      <div id="txList"></div>
     </div>
 
-    <!-- Footer Credit Banner -->
-    <div class="text-center">
-        <span class="inline-block px-4 py-1.5 bg-white border border-slate-200 text-xs font-semibold text-slate-600 rounded-full shadow-sm">
-            kuerav-cyber.github.io
-        </span>
+    <div class="box">
+      <div class="between">
+        <h3 style="margin:0">Saldo Awal Bulan</h3>
+        <input id="awalBln" type="month" style="width:auto;margin:0;padding:6px 10px;font-size:13px">
+      </div>
+      <input id="awalNominal" type="number" readonly>
+      <div id="awalLockNote" class="small" style="margin-top:6px"></div>
     </div>
 
-    <!-- Custom Notification Toast (Tanpa Alert) -->
-    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-xl transition-all duration-300 opacity-0 pointer-events-none z-50">
-        Pesan Notifikasi
+    <div class="box">
+      <h3 style="margin:0 0 8px">Daily Closing (23:59:59)</h3>
+      <button type="button" onclick="doClosing(true)">Tutup Hari Ini</button>
+      <div id="closeList" style="margin-top:8px"></div>
     </div>
+  </div>
+</div>
 
-    <script>
-        // Logika Data & State
-        let transaksiData = JSON.parse(localStorage.getItem('app_transaksi_kas')) || [
-            {
-                id: 1700753317000,
-                deskripsi: 'Makan malam',
-                jenis: 'Keluar',
-                akun: 'BCA',
-                nominal: 37000,
-                waktu: getTodayISOString() + ' • 23:28:37',
-                tanggalISO: getTodayISOString()
-            }
-        ];
+<div id="backdrop" class="backdrop hide" onclick="closeDrawer()"></div>
+<div id="drawer" class="drawer hide">
+  <div class="between" style="margin-bottom:12px">
+    <b>Menu</b>
+    <button type="button" class="btn-sec btn-sm" onclick="closeDrawer()">✕</button>
+  </div>
 
-        let statusClosingText = localStorage.getItem('app_status_closing') || 'Belum ada closing.';
+  <div class="box" style="padding:12px">
+    <b>Profil &amp; Warna Latar</b>
+    <div class="row-flex" style="margin-top:8px">
+      <img id="drawerAvatar" class="avatar" src="" alt="">
+      <input id="fileAvatar" type="file" accept="image/*" onchange="uploadAvatar(event)" style="margin:0;padding:6px;font-size:12px">
+    </div>
+    <input id="profUser" type="text" placeholder="Username">
+    <input id="profPass" type="password" placeholder="Password baru">
+    <select id="themeSelect" onchange="changeTheme(this.value)">
+      <option value="default">Biru Muda</option>
+      <option value="violet">Soft Violet</option>
+      <option value="blue">Soft Blue</option>
+      <option value="mint">Mint Fresh</option>
+      <option value="dark">Dark Mode</option>
+    </select>
+    <button type="button" onclick="simpanProfil()">Simpan</button>
+    <div id="profMsg" class="small in" style="margin-top:4px"></div>
+  </div>
 
-        // Inisialisasi Saat Halaman Load
-        window.onload = function() {
-            renderSemuaData();
-            renderHariIni();
-            updateTotalSaldo();
-            document.getElementById('status-closing').innerText = statusClosingText;
-        };
+  <div class="box" style="padding:12px">
+    <b>Database Saldo</b>
+    <label>BNI</label>
+    <input id="dbBni" type="number" step="any" placeholder="0">
+    <label>BCA</label>
+    <input id="dbBca" type="number" step="any" placeholder="0">
+    <label>Cash</label>
+    <input id="dbCash" type="number" step="any" placeholder="0">
+    <button type="button" onclick="simpanDatabaseSaldo()">Simpan Saldo</button>
+    <div id="dbMsg" class="small in" style="margin-top:4px"></div>
+  </div>
 
-        // Mendapatkan Tanggal Hari Ini Format YYYY-MM-DD
-        function getTodayISOString() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
+  <div class="box" style="padding:12px">
+    <b>Sinkronisasi &amp; Backup</b>
+    <button type="button" class="btn-sec" onclick="syncFromCloud(true)">Sinkronkan Cloud</button>
+    <button type="button" onclick="exportBackup()">Export (.json)</button>
+    <input id="drawerImportFile" type="file" accept=".json,application/json" onchange="importBackup(event)" style="padding:6px;font-size:12px">
+  </div>
 
-        // Helper Format Rupiah
-        function formatRupiah(angka) {
-            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka).replace('Rp', 'Rp ');
-        }
+  <button type="button" class="btn-red" onclick="logoutUser()">Keluar</button>
+</div>
 
-        // Toast Notification
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.innerText = message;
-            toast.classList.remove('opacity-0', 'pointer-events-none');
-            toast.classList.add('opacity-100');
-            setTimeout(() => {
-                toast.classList.remove('opacity-100');
-                toast.classList.add('opacity-0', 'pointer-events-none');
-            }, 3000);
-        }
+<div id="monthModal" class="modal-bg hide">
+  <div class="modal-card">
+    <h3 style="margin:0 0 6px">Awal Bulan <span id="modalBlnLbl"></span></h3>
+    <input id="modalInVal" type="number" min="0" placeholder="Pemasukan awal bulan (Rp)">
+    <select id="modalInAkun">
+      <option value="BCA">BCA</option>
+      <option value="BNI">BNI</option>
+      <option value="Cash">Cash</option>
+    </select>
+    <div class="row-flex" style="margin-top:10px">
+      <button type="button" onclick="simpanModalAwalBulan()">Simpan</button>
+      <button type="button" class="btn-sec" onclick="tutupModalBulan()">Nanti</button>
+    </div>
+  </div>
+</div>
 
-        // Simpan Data Ke LocalStorage
-        function saveData() {
-            localStorage.setItem('app_transaksi_kas', JSON.stringify(transaksiData));
-            updateTotalSaldo();
-        }
+<div id="receiptModal" class="modal-bg hide" onclick="closeReceiptModal()">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="between">
+      <b id="receiptTitle">Struk</b>
+      <button type="button" class="btn-sec btn-sm" onclick="closeReceiptModal()">✕</button>
+    </div>
+    <img id="receiptImg" class="receipt-preview" src="" alt="">
+  </div>
+</div>
 
-        // Menghitung Total Saldo (Logika background penambahan/pengurangan berjalan di sini)
-        function updateTotalSaldo() {
-            const total = transaksiData.reduce((acc, item) => {
-                if (item.jenis === 'Masuk') {
-                    return acc + item.nominal;
-                } else {
-                    return acc - item.nominal;
-                }
-            }, 0);
-            
-            document.getElementById('total-saldo-display').innerText = formatRupiah(total);
-        }
+<script>
+const CLOUD_BIN_ID="";
+const CLOUD_API_KEY="";
 
-        // Handle Form Submit
-        document.getElementById('form-transaksi').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const deskripsi = document.getElementById('deskripsi').value.trim();
-            const jenis = document.getElementById('jenis').value;
-            const akun = document.getElementById('akun').value;
-            const nominal = parseFloat(document.getElementById('nominal').value);
-            
-            const now = new Date();
-            const timeString = now.toTimeString().split(' ')[0];
-            const todayISO = getTodayISOString();
+const K_ACC="fn_acc_v5",K_TX="fn_tx_v5",K_CLS="fn_cls_v5",K_AWAL="fn_awal_v5",K_WALLET="fn_wallet_v5",K_THEME="fn_theme_v5",K_PROMPT_BLN="fn_prompt_bln_v5";
+const S_ACTIVE="fn_session_active_v5",S_LAST="fn_session_last_v5";
+const IDLE_LIMIT_MS=30*60*1000;
 
-            const newTransaksi = {
-                id: Date.now(),
-                deskripsi: deskripsi,
-                jenis: jenis,
-                akun: akun,
-                nominal: nominal,
-                waktu: `${todayISO} • ${timeString}`,
-                tanggalISO: todayISO
-            };
+const rp=n=>"Rp "+Number(n||0).toLocaleString("id-ID");
+const pad=n=>String(n).padStart(2,"0");
+const tglStr=(d=new Date())=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const blnStr=(d=new Date())=>d.getFullYear()+"-"+pad(d.getMonth()+1);
+const jamStr=(d=new Date())=>pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds());
+const loadJson=(k,fb)=>{try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(fb));}catch{return fb;}};
+const saveJson=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const getAcc=()=>loadJson(K_ACC,null);
+const getTx=()=>loadJson(K_TX,[]);
+const getCls=()=>loadJson(K_CLS,[]);
+const getAwalMap=()=>loadJson(K_AWAL,{});
+const getWallet=()=>loadJson(K_WALLET,{BNI:0,BCA:0,Cash:0});
+const getTotalWallet=()=>{const w=getWallet();return Number(w.BNI||0)+Number(w.BCA||0)+Number(w.Cash||0);};
 
-            transaksiData.unshift(newTransaksi);
-            saveData();
+function isCloudReady(){return Boolean(CLOUD_BIN_ID && CLOUD_API_KEY);}
+function setSyncLabel(msg){const el=document.getElementById("syncStatus");if(el)el.textContent=msg;}
 
-            renderSemuaData();
-            renderHariIni();
+function collectAllState(){
+  return{updatedAt:Date.now(),acc:getAcc(),tx:getTx(),cls:getCls(),awal:getAwalMap(),wallet:getWallet(),theme:localStorage.getItem(K_THEME)||"default",promptBln:localStorage.getItem(K_PROMPT_BLN)||""};
+}
 
-            // Reset Form
-            this.reset();
-            showToast("Transaksi berhasil disimpan!");
-        });
+function applyState(d){
+  if(!d||typeof d!=="object")return;
+  if(d.acc)saveJson(K_ACC,d.acc);
+  if(Array.isArray(d.tx))saveJson(K_TX,d.tx);
+  if(Array.isArray(d.cls))saveJson(K_CLS,d.cls);
+  if(d.awal&&typeof d.awal==="object")saveJson(K_AWAL,d.awal);
+  if(d.wallet&&typeof d.wallet==="object")saveJson(K_WALLET,d.wallet);
+  if(d.theme)changeTheme(d.theme);
+  if(d.promptBln!==undefined)localStorage.setItem(K_PROMPT_BLN,d.promptBln);
+}
 
-        // Render Section "Lihat Data Pemasukan & Pengeluaran"
-        function renderSemuaData() {
-            const container = document.getElementById('container-semua-data');
-            const filterJenis = document.getElementById('filter-jenis').value;
-            const filterTanggal = document.getElementById('filter-tanggal').value;
+async function fetchCloudRecord(){
+  if(!isCloudReady())return null;
+  const res=await fetch("https://api.jsonbin.io/v3/b/"+CLOUD_BIN_ID+"/latest",{headers:{"X-Master-Key":CLOUD_API_KEY}});
+  if(!res.ok)throw new Error("cloud");
+  const json=await res.json();
+  return json.record||null;
+}
 
-            container.innerHTML = '';
+async function saveToCloud(){
+  if(!isCloudReady())return;
+  try{
+    setSyncLabel("Menyimpan...");
+    const res=await fetch("https://api.jsonbin.io/v3/b/"+CLOUD_BIN_ID,{
+      method:"PUT",
+      headers:{"Content-Type":"application/json","X-Master-Key":CLOUD_API_KEY},
+      body:JSON.stringify(collectAllState())
+    });
+    if(!res.ok)throw new Error("cloud");
+    setSyncLabel("Tersinkron "+jamStr());
+  }catch{
+    setSyncLabel("Lokal saja");
+  }
+}
 
-            let filtered = transaksiData.filter(item => {
-                let matchJenis = (filterJenis === 'Semua') || (item.jenis === filterJenis);
-                let matchTanggal = !filterTanggal || (item.tanggalISO === filterTanggal);
-                return matchJenis && matchTanggal;
-            });
+async function syncFromCloud(showAlert=false){
+  if(!isCloudReady())return null;
+  try{
+    setSyncLabel("Menyinkronkan...");
+    const rec=await fetchCloudRecord();
+    if(rec && rec.acc){
+      applyState(rec);
+      initAuth();
+      if(!document.getElementById("appBox").classList.contains("hide")){syncAwalWithWallet();muatFormAwal();cekLockForm();renderAll();}
+      setSyncLabel("Tersinkron "+jamStr());
+      if(showAlert)alert("Tersinkron.");
+      return rec;
+    }
+    return null;
+  }catch{
+    if(showAlert)alert("Gagal sinkron.");
+    return null;
+  }
+}
 
-            if (filtered.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">Tidak ada data transaksi.</p>`;
-                return;
-            }
+function syncAwalWithWallet(bln=blnStr()){
+  const tot=getTotalWallet(),m=getAwalMap();
+  m[bln]=tot;
+  saveJson(K_AWAL,m);
+  return tot;
+}
 
-            filtered.forEach(item => {
-                const isKeluar = item.jenis === 'Keluar';
-                const sign = isKeluar ? '- ' : '+ ';
-                const colorClass = isKeluar ? 'text-red-500' : 'text-emerald-600';
+function touchSession(){
+  sessionStorage.setItem(S_ACTIVE,"1");
+  sessionStorage.setItem(S_LAST,String(Date.now()));
+}
 
-                const html = `
-                    <div class="py-2.5 border-b border-slate-100 last:border-0 flex justify-between items-start">
-                        <div>
-                            <div class="font-bold text-slate-800 text-sm sm:text-base">
-                                ${item.deskripsi} <span class="text-xs font-normal text-slate-500">(${item.akun} • ${item.jenis})</span>
-                            </div>
-                            <div class="text-xs text-slate-400 font-mono mt-0.5">${item.waktu}</div>
-                        </div>
-                        <div class="font-bold ${colorClass} text-sm sm:text-base whitespace-nowrap">
-                            ${sign}${formatRupiah(item.nominal)}
-                        </div>
-                    </div>
-                `;
-                container.innerHTML += html;
-            });
-        }
+function hasValidSession(){
+  if(sessionStorage.getItem(S_ACTIVE)!=="1")return false;
+  const last=Number(sessionStorage.getItem(S_LAST)||0);
+  if(!last || (Date.now()-last)>IDLE_LIMIT_MS){
+    sessionStorage.removeItem(S_ACTIVE);sessionStorage.removeItem(S_LAST);
+    return false;
+  }
+  return true;
+}
 
-        function resetFilterTanggal() {
-            document.getElementById('filter-tanggal').value = '';
-            document.getElementById('filter-jenis').value = 'Semua';
-            renderSemuaData();
-        }
+["click","keydown","touchstart","scroll"].forEach(ev=>{
+  window.addEventListener(ev,()=>{if(!document.getElementById("appBox").classList.contains("hide"))touchSession();},{passive:true});
+});
 
-        // Render Section "Kelola Transaksi Hari Ini"
-        function renderHariIni() {
-            const container = document.getElementById('container-hari-ini');
-            const todayISO = getTodayISOString();
+function exportBackup(){
+  const payload={app:"Finote",exportedAt:new Date().toISOString(),data:collectAllState()};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download="finote-backup-"+tglStr()+".json";a.click();URL.revokeObjectURL(url);
+}
 
-            // Logika Penguncian: Hanya ambil data yang tanggalnya = HARI INI
-            const dataHariIni = transaksiData.filter(item => item.tanggalISO === todayISO);
+function importBackup(ev){
+  const file=ev.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=async()=>{
+    try{
+      const d=(JSON.parse(r.result)).data||JSON.parse(r.result);
+      applyState(d);ev.target.value="";initAuth();
+      if(!document.getElementById("appBox").classList.contains("hide")){syncAwalWithWallet();muatFormAwal();cekLockForm();renderAll();}
+      await saveToCloud();
+      alert("Import berhasil.");
+    }catch{alert("File tidak valid.");}
+  };
+  r.readAsText(file);
+}
 
-            container.innerHTML = '';
+function isDateLocked(tgl){const today=tglStr();return !tgl||tgl<today||(tgl===today&&getCls().some(c=>c.tgl===today));}
+function isMonthLocked(bln){return bln<blnStr();}
+function changeTheme(th){document.body.className=th==="default"?"":"theme-"+th;localStorage.setItem(K_THEME,th);const s=document.getElementById("themeSelect");if(s)s.value=th;}
+function setAuthMode(m){const r=m==="register";document.getElementById("panelLogin").classList.toggle("hide",r);document.getElementById("panelReg").classList.toggle("hide",!r);document.getElementById("tabLogin").className=r?"btn-sec":"";document.getElementById("tabReg").className=r?"":"btn-sec";}
+function initAuth(){const acc=getAcc();if(acc){document.getElementById("loginInfo").textContent="Akun: "+acc.username;if(!document.getElementById("inUser").value)document.getElementById("inUser").value=acc.username;}else{document.getElementById("loginInfo").textContent="Belum ada akun.";}}
 
-            if (dataHariIni.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">Belum ada transaksi hari ini.</p>`;
-                return;
-            }
+async function registerUser(){
+  const u=document.getElementById("regUser").value.trim(),p=document.getElementById("regPass").value,err=document.getElementById("regErr");
+  if(u.length<3){err.textContent="Username minimal 3 huruf.";return;}
+  if(p.length<4){err.textContent="Password minimal 4 karakter.";return;}
+  saveJson(K_ACC,{username:u,password:p,avatar:""});err.textContent="";setAuthMode("login");document.getElementById("inUser").value=u;document.getElementById("inPass").value="";initAuth();await saveToCloud();
+}
 
-            dataHariIni.forEach(item => {
-                const isKeluar = item.jenis === 'Keluar';
-                const sign = isKeluar ? '- ' : '+ ';
-                const colorClass = isKeluar ? 'text-red-500' : 'text-emerald-600';
+function enterApp(){
+  touchSession();
+  document.getElementById("authBox").classList.add("hide");
+  document.getElementById("appBox").classList.remove("hide");
+  document.getElementById("txTgl").value=tglStr();
+  document.getElementById("awalBln").value=blnStr();
+  syncAwalWithWallet();muatFormAwal();cekLockForm();renderAll();cekPengingatAwalBulan();
+}
 
-                const html = `
-                    <div class="py-2.5 border-b border-slate-100 last:border-0 flex justify-between items-center gap-2">
-                        <div class="flex-1 min-w-0">
-                            <div class="font-bold text-slate-800 text-sm truncate">
-                                ${item.deskripsi} <span class="text-xs font-normal text-slate-500">(${item.akun} • ${item.jenis})</span>
-                            </div>
-                            <div class="text-xs text-slate-400 font-mono mt-0.5">${item.waktu}</div>
-                        </div>
-                        <div class="font-bold ${colorClass} text-sm whitespace-nowrap">
-                            ${sign}${formatRupiah(item.nominal)}
-                        </div>
-                        <button onclick="hapusTransaksi(${item.id})" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold text-xs rounded-xl transition-transform shadow-sm">
-                            Hapus
-                        </button>
-                    </div>
-                `;
-                container.innerHTML += html;
-            });
-        }
+async function loginUser(){
+  const u=document.getElementById("inUser").value.trim(),p=document.getElementById("inPass").value,err=document.getElementById("authErr"),btn=document.getElementById("btnLogin");
+  err.textContent="";
+  if(!u||!p){err.textContent="Lengkapi username dan password.";return;}
+  if(isCloudReady()){
+    try{btn.disabled=true;const rec=await fetchCloudRecord();if(rec&&rec.acc)applyState(rec);}catch{}finally{btn.disabled=false;}
+  }
+  const acc=getAcc();
+  if(!acc){err.textContent="Akun belum ada.";return;}
+  if(u===acc.username && p===acc.password)enterApp();
+  else err.textContent="Username atau password salah.";
+}
 
-        // Hapus Transaksi (Hanya berlaku untuk transaksi hari ini yang tampil)
-        function hapusTransaksi(id) {
-            // Pengecekan keamanan tanggal di background
-            const item = transaksiData.find(t => t.id === id);
-            const todayISO = getTodayISOString();
+function logoutUser(silent=false){
+  sessionStorage.removeItem(S_ACTIVE);sessionStorage.removeItem(S_LAST);
+  closeDrawer();
+  document.getElementById("appBox").classList.add("hide");
+  document.getElementById("authBox").classList.remove("hide");
+  document.getElementById("inPass").value="";
+  initAuth();
+  if(silent)document.getElementById("authErr").textContent="Sesi berakhir (30 menit).";
+}
 
-            if (item && item.tanggalISO !== todayISO) {
-                showToast("Transaksi tanggal lalu sudah terkunci.");
-                return;
-            }
+function openDrawer(){
+  const acc=getAcc()||{username:"Pengguna",avatar:""},w=getWallet();
+  document.getElementById("profUser").value=acc.username;document.getElementById("profPass").value="";
+  document.getElementById("drawerAvatar").src=acc.avatar||"";
+  document.getElementById("dbBni").value=Number(w.BNI||0);document.getElementById("dbBca").value=Number(w.BCA||0);document.getElementById("dbCash").value=Number(w.Cash||0);
+  document.getElementById("profMsg").textContent="";document.getElementById("dbMsg").textContent="";
+  document.getElementById("drawer").classList.remove("hide");document.getElementById("backdrop").classList.remove("hide");
+}
 
-            transaksiData = transaksiData.filter(t => t.id !== id);
-            saveData();
-            renderSemuaData();
-            renderHariIni();
-            showToast("Transaksi berhasil dihapus.");
-        }
+function closeDrawer(){document.getElementById("drawer").classList.add("hide");document.getElementById("backdrop").classList.add("hide");}
 
-        // Proses Closing
-        function prosesClosing() {
-            const now = new Date();
-            const formatWaktu = `${getTodayISOString()} ${now.toTimeString().split(' ')[0]}`;
-            statusClosingText = `Tutup hari dilakukan pada: ${formatWaktu}`;
-            localStorage.setItem('app_status_closing', statusClosingText);
-            document.getElementById('status-closing').innerText = statusClosingText;
-            showToast("Daily closing berhasil disimpan!");
-        }
-    </script>
+function uploadAvatar(ev){
+  const f=ev.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=async()=>{
+    const acc=getAcc()||{username:"Pengguna",password:"1234"};
+    acc.avatar=r.result;saveJson(K_ACC,acc);
+    document.getElementById("drawerAvatar").src=acc.avatar;document.getElementById("hdrAvatar").src=acc.avatar;
+    await saveToCloud();
+  };
+  r.readAsDataURL(f);
+}
+
+async function simpanProfil(){
+  const acc=getAcc();if(!acc)return;
+  const u=document.getElementById("profUser").value.trim(),p=document.getElementById("profPass").value;
+  if(u.length<3)return;
+  acc.username=u;if(p.length>=4)acc.password=p;
+  saveJson(K_ACC,acc);document.getElementById("profPass").value="";document.getElementById("profMsg").textContent="Tersimpan.";
+  renderAll();await saveToCloud();
+}
+
+async function simpanDatabaseSaldo(){
+  const w={BNI:Number(document.getElementById("dbBni").value||0),BCA:Number(document.getElementById("dbBca").value||0),Cash:Number(document.getElementById("dbCash").value||0)};
+  saveJson(K_WALLET,w);syncAwalWithWallet();muatFormAwal();document.getElementById("dbMsg").textContent="Tersimpan.";
+  renderAll();await saveToCloud();
+}
+
+function muatFormAwal(){
+  const bln=document.getElementById("awalBln").value||blnStr(),locked=isMonthLocked(bln);
+  const val=locked ? Number(getAwalMap()[bln]??getTotalWallet()) : getTotalWallet();
+  document.getElementById("awalNominal").value=val;
+  document.getElementById("awalLockNote").textContent=locked?"Terkunci":"";
+}
+document.getElementById("awalBln").addEventListener("change",muatFormAwal);
+
+function cekLockForm(){
+  const tgl=document.getElementById("txTgl").value||tglStr(),locked=isDateLocked(tgl);
+  document.getElementById("btnSimpanTx").disabled=locked;
+  document.getElementById("txLockNote").textContent=locked?"Terkunci":"";
+}
+
+function readFileData(f){return new Promise(res=>{if(!f){res(null);return;}const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>res(null);r.readAsDataURL(f);});}
+
+async function tambahTransaksi(){
+  const tgl=document.getElementById("txTgl").value,tipe=document.getElementById("txTipe").value,akun=document.getElementById("txAkun").value,ket=document.getElementById("txKet").value.trim(),nom=Number(document.getElementById("txNominal").value||0),fi=document.getElementById("txReceipt");
+  if(!tgl||!ket||nom<=0||isDateLocked(tgl))return;
+  const receipt=fi.files&&fi.files[0]?await readFileData(fi.files[0]):null;
+  const tx=getTx();tx.unshift({id:Date.now(),tgl,tipe,akun,ket,nominal:nom,jam:jamStr(),receipt});saveJson(K_TX,tx);
+  const w=getWallet();
+  w[akun]=tipe==="income"?Number(w[akun]||0)+nom:Number(w[akun]||0)-nom;
+  saveJson(K_WALLET,w);
+  syncAwalWithWallet(tgl.slice(0,7));muatFormAwal();
+  document.getElementById("txKet").value="";document.getElementById("txNominal").value="";fi.value="";
+  renderAll();await saveToCloud();
+}
+
+async function hapusTransaksi(id){
+  const tx=getTx(),t=tx.find(x=>x.id===id);if(!t||isDateLocked(t.tgl))return;
+  const w=getWallet();
+  w[t.akun]=t.tipe==="income"?Number(w[t.akun]||0)-Number(t.nominal):Number(w[t.akun]||0)+Number(t.nominal);
+  saveJson(K_WALLET,w);
+  syncAwalWithWallet(t.tgl.slice(0,7));muatFormAwal();
+  saveJson(K_TX,tx.filter(x=>x.id!==id));
+  renderAll();await saveToCloud();
+}
+
+function openReceiptModal(id){const it=getTx().find(x=>x.id===id);if(!it||!it.receipt)return;document.getElementById("receiptTitle").textContent=it.ket+" ("+it.tgl+")";document.getElementById("receiptImg").src=it.receipt;document.getElementById("receiptModal").classList.remove("hide");}
+function closeReceiptModal(){document.getElementById("receiptModal").classList.add("hide");document.getElementById("receiptImg").src="";}
+
+async function doClosing(manual){
+  const hr=tglStr(),tx=getTx().filter(x=>x.tgl===hr),masuk=tx.filter(x=>x.tipe==="income").reduce((a,b)=>a+b.nominal,0),keluar=tx.filter(x=>x.tipe!=="income").reduce((a,b)=>a+b.nominal,0);
+  const cls=getCls(),idx=cls.findIndex(c=>c.tgl===hr),rec={tgl:hr,masuk,keluar,jam:jamStr()};
+  if(idx>=0)cls[idx]=rec;else cls.unshift(rec);saveJson(K_CLS,cls);cekLockForm();renderAll();await saveToCloud();
+  if(manual)alert("Closing "+hr+" selesai.");
+}
+
+function cekPengingatAwalBulan(){const bln=blnStr();if(localStorage.getItem(K_PROMPT_BLN)!==bln){document.getElementById("modalBlnLbl").textContent=bln;document.getElementById("modalInVal").value="";document.getElementById("monthModal").classList.remove("hide");}}
+async function tutupModalBulan(){localStorage.setItem(K_PROMPT_BLN,blnStr());document.getElementById("monthModal").classList.add("hide");await saveToCloud();}
+
+async function simpanModalAwalBulan(){
+  const bln=blnStr(),inVal=Number(document.getElementById("modalInVal").value||0),inAkun=document.getElementById("modalInAkun").value,w=getWallet();
+  if(inVal>0){const tx=getTx();tx.unshift({id:Date.now(),tgl:tglStr(),tipe:"income",akun:inAkun,ket:"Pemasukan Awal Bulan",nominal:inVal,jam:jamStr(),receipt:null});saveJson(K_TX,tx);w[inAkun]=Number(w[inAkun]||0)+inVal;saveJson(K_WALLET,w);}
+  syncAwalWithWallet(bln);muatFormAwal();
+  localStorage.setItem(K_PROMPT_BLN,bln);document.getElementById("monthModal").classList.add("hide");
+  renderAll();await saveToCloud();
+}
+
+function resetViewFilter(){document.getElementById("viewFilterTipe").value="all";document.getElementById("viewFilterTgl").value="";renderViewOnly();}
+
+function renderViewOnly(){
+  const tf=document.getElementById("viewFilterTipe")?.value||"all",df=document.getElementById("viewFilterTgl")?.value||"";
+  const list=getTx().filter(x=>(tf==="all"||x.tipe===tf)&&(!df||x.tgl===df));
+  document.getElementById("viewOnlyList").innerHTML=list.map(x=>{
+    const isIn=x.tipe==="income",lk=isDateLocked(x.tgl);
+    return '<div class="item"><div><b>'+x.ket+'</b> <span class="small">('+x.akun+')</span><div class="small">'+x.tgl+' • '+x.jam+(lk?' <span class="badge-lock">TERKUNCI</span>':"")+'</div></div><div class="row-flex"><span class="'+(isIn?"in":"out")+'">'+(isIn?"+":"-")+rp(x.nominal)+'</span>'+(x.receipt?'<button type="button" class="btn-sec btn-sm" onclick="openReceiptModal('+x.id+')">Struk</button>':"")+'</div></div>';
+  }).join("")||'<div class="small">Tidak ada data.</div>';
+}
+
+function renderAll(){
+  const acc=getAcc()||{username:"Pengguna",avatar:""},w=getWallet(),tx=getTx(),hr=tglStr(),bln=blnStr(),tot=getTotalWallet(),awal=syncAwalWithWallet(bln);
+  document.getElementById("hdrName").textContent=acc.username;document.getElementById("hdrAvatar").src=acc.avatar||"";
+  document.getElementById("lblAwal").textContent=rp(awal);
+  document.getElementById("lblBni").textContent=rp(w.BNI||0);document.getElementById("lblBca").textContent=rp(w.BCA||0);document.getElementById("lblCash").textContent=rp(w.Cash||0);
+  const se=document.getElementById("saldoTotal");se.textContent=rp(tot);se.className="kas-big "+(tot>=0?"in":"out");
+  document.getElementById("lblMasukHr").textContent=rp(tx.filter(x=>x.tgl===hr&&x.tipe==="income").reduce((a,b)=>a+b.nominal,0));
+  document.getElementById("lblKeluarHr").textContent=rp(tx.filter(x=>x.tgl===hr&&x.tipe!=="income").reduce((a,b)=>a+b.nominal,0));
+  renderViewOnly();
+  document.getElementById("txList").innerHTML=tx.map(x=>{
+    const lk=isDateLocked(x.tgl),isIn=x.tipe==="income";
+    return '<div class="item"><div><b>'+x.ket+'</b> <span class="small">('+x.akun+')</span><div class="small">'+x.tgl+' • '+x.jam+(lk?' <span class="badge-lock">TERKUNCI</span>':"")+'</div></div><div class="row-flex"><span class="'+(isIn?"in":"out")+'">'+(isIn?"+":"-")+rp(x.nominal)+'</span>'+(x.receipt?'<button type="button" class="btn-sec btn-sm" onclick="openReceiptModal('+x.id+')">Struk</button>':"")+(lk?"":'<button type="button" class="btn-red btn-sm" onclick="hapusTransaksi('+x.id+')">Hapus</button>')+'</div></div>';
+  }).join("")||'<div class="small">Belum ada transaksi.</div>';
+  document.getElementById("closeList").innerHTML=getCls().map(c=>'<div class="item"><div><b>'+c.tgl+'</b> <span class="badge-lock">TERKUNCI</span><div class="small">'+c.jam+' • Masuk '+rp(c.masuk||0)+'</div></div><div class="out">Keluar '+rp(c.keluar||0)+'</div></div>').join("")||'<div class="small">Belum ada closing.</div>';
+}
+
+changeTheme(localStorage.getItem(K_THEME)||"default");
+initAuth();
+if(isCloudReady()){
+  syncFromCloud(false).then(()=>{if(getAcc() && hasValidSession())enterApp();});
+}else if(getAcc() && hasValidSession()){
+  enterApp();
+}
+
+setInterval(()=>{
+  const now=new Date(),j=jamStr(now),clk=document.getElementById("hdrClock");
+  if(clk)clk.textContent=tglStr(now)+" — "+j;
+  if(j==="23:59:59")doClosing(false);
+  if(!document.getElementById("appBox").classList.contains("hide") && !hasValidSession())logoutUser(true);
+},1000);
+</script>
 </body>
 </html>
