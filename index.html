@@ -110,7 +110,7 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
         <span id="lblSubAwal">Saldo Awal</span>: <b id="lblAwal">Rp 0</b> • <span id="lblSubMasuk">Masuk</span>: <b id="lblMasukHr" class="in">Rp 0</b> • <span id="lblSubKeluar">Keluar</span>: <b id="lblKeluarHr" class="out">Rp 0</b>
       </div>
       <div class="kas-sub" style="margin-top:4px">
-        BNI: <b id="lblBni">Rp 0</b> • BCA: <b id="lblBca">Rp 0</b> • Cash: <b id="lblCash">Rp 0</b>
+        BNI: <b id="lblBni">Rp 0</b> • BCA: <b id="lblBca">Rp 0</b> • Mandiri: <b id="lblMandiri">Rp 0</b> • Other Bank: <b id="lblOtherBank">Rp 0</b> • E-Wallet: <b id="lblEwallet">Rp 0</b> • Cash: <b id="lblCash">Rp 0</b>
       </div>
     </div>
 
@@ -133,6 +133,9 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
           <select id="txAkun">
             <option value="BCA">BCA</option>
             <option value="BNI">BNI</option>
+            <option value="Mandiri">Mandiri</option>
+            <option value="Other Bank">Other Bank</option>
+            <option value="E-Wallet">E-Wallet</option>
             <option value="Cash">Cash</option>
           </select>
         </div>
@@ -222,6 +225,12 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
     <input id="dbBni" type="number" step="any" placeholder="0">
     <label>BCA</label>
     <input id="dbBca" type="number" step="any" placeholder="0">
+    <label>Mandiri</label>
+    <input id="dbMandiri" type="number" step="any" placeholder="0">
+    <label>Other Bank</label>
+    <input id="dbOtherBank" type="number" step="any" placeholder="0">
+    <label>E-Wallet</label>
+    <input id="dbEwallet" type="number" step="any" placeholder="0">
     <label>Cash</label>
     <input id="dbCash" type="number" step="any" placeholder="0">
     <button type="button" id="btnSaveDb" onclick="simpanDatabaseSaldo()">Simpan Saldo</button>
@@ -245,6 +254,9 @@ body.theme-dark .btn-sec{background:#334155;color:#f8fafc}
     <select id="modalInAkun">
       <option value="BCA">BCA</option>
       <option value="BNI">BNI</option>
+      <option value="Mandiri">Mandiri</option>
+      <option value="Other Bank">Other Bank</option>
+      <option value="E-Wallet">E-Wallet</option>
       <option value="Cash">Cash</option>
     </select>
     <div class="row-flex" style="margin-top:10px">
@@ -271,6 +283,7 @@ const CLOUD_API_KEY="";
 const K_ACC="fn_acc_v5",K_TX="fn_tx_v5",K_CLS="fn_cls_v5",K_AWAL="fn_awal_v5",K_WALLET="fn_wallet_v5",K_THEME="fn_theme_v5",K_PROMPT_BLN="fn_prompt_bln_v5",K_LANG="fn_lang_v5";
 const S_ACTIVE="fn_session_active_v5",S_LAST="fn_session_last_v5";
 const IDLE_LIMIT_MS=30*60*1000;
+const EMPTY_WALLET={BNI:0,BCA:0,Mandiri:0,"Other Bank":0,"E-Wallet":0,Cash:0};
 
 const I18N={
   id:{
@@ -407,8 +420,8 @@ const getAcc=()=>loadJson(K_ACC,null);
 const getTx=()=>loadJson(K_TX,[]);
 const getCls=()=>loadJson(K_CLS,[]);
 const getAwalMap=()=>loadJson(K_AWAL,{});
-const getWallet=()=>loadJson(K_WALLET,{BNI:0,BCA:0,Cash:0});
-const getTotalWallet=()=>{const w=getWallet();return Number(w.BNI||0)+Number(w.BCA||0)+Number(w.Cash||0);};
+const getWallet=()=>{const raw=loadJson(K_WALLET,{});return {...EMPTY_WALLET,...raw};};
+const getTotalWallet=()=>{const w=getWallet();return Number(w.BNI||0)+Number(w.BCA||0)+Number(w.Mandiri||0)+Number(w["Other Bank"]||0)+Number(w["E-Wallet"]||0)+Number(w.Cash||0);};
 
 function isCloudReady(){return Boolean(CLOUD_BIN_ID && CLOUD_API_KEY);}
 function setSyncLabel(msg){const el=document.getElementById("syncStatus");if(el)el.textContent=msg;}
@@ -423,7 +436,7 @@ function applyState(d){
   if(Array.isArray(d.tx))saveJson(K_TX,d.tx);
   if(Array.isArray(d.cls))saveJson(K_CLS,d.cls);
   if(d.awal&&typeof d.awal==="object")saveJson(K_AWAL,d.awal);
-  if(d.wallet&&typeof d.wallet==="object")saveJson(K_WALLET,d.wallet);
+  if(d.wallet&&typeof d.wallet==="object")saveJson(K_WALLET,{...EMPTY_WALLET,...d.wallet});
   if(d.theme)changeTheme(d.theme);
   if(d.promptBln!==undefined)localStorage.setItem(K_PROMPT_BLN,d.promptBln);
   if(d.lang)localStorage.setItem(K_LANG,d.lang==="en"?"en":"id");
@@ -570,7 +583,12 @@ function openDrawer(){
   const acc=getAcc()||{username:"Pengguna",avatar:""},w=getWallet();
   document.getElementById("profUser").value=acc.username;document.getElementById("profPass").value="";
   document.getElementById("drawerAvatar").src=acc.avatar||"";
-  document.getElementById("dbBni").value=Number(w.BNI||0);document.getElementById("dbBca").value=Number(w.BCA||0);document.getElementById("dbCash").value=Number(w.Cash||0);
+  document.getElementById("dbBni").value=Number(w.BNI||0);
+  document.getElementById("dbBca").value=Number(w.BCA||0);
+  document.getElementById("dbMandiri").value=Number(w.Mandiri||0);
+  document.getElementById("dbOtherBank").value=Number(w["Other Bank"]||0);
+  document.getElementById("dbEwallet").value=Number(w["E-Wallet"]||0);
+  document.getElementById("dbCash").value=Number(w.Cash||0);
   document.getElementById("profMsg").textContent="";document.getElementById("dbMsg").textContent="";
   document.getElementById("drawer").classList.remove("hide");document.getElementById("backdrop").classList.remove("hide");
 }
@@ -599,7 +617,14 @@ async function simpanProfil(){
 }
 
 async function simpanDatabaseSaldo(){
-  const w={BNI:Number(document.getElementById("dbBni").value||0),BCA:Number(document.getElementById("dbBca").value||0),Cash:Number(document.getElementById("dbCash").value||0)};
+  const w={
+    BNI:Number(document.getElementById("dbBni").value||0),
+    BCA:Number(document.getElementById("dbBca").value||0),
+    Mandiri:Number(document.getElementById("dbMandiri").value||0),
+    "Other Bank":Number(document.getElementById("dbOtherBank").value||0),
+    "E-Wallet":Number(document.getElementById("dbEwallet").value||0),
+    Cash:Number(document.getElementById("dbCash").value||0)
+  };
   saveJson(K_WALLET,w);syncAwalWithWallet();muatFormAwal();document.getElementById("dbMsg").textContent=t("saved");
   renderAll();await saveToCloud();
 }
@@ -680,7 +705,12 @@ function renderAll(){
   const acc=getAcc()||{username:"Pengguna",avatar:""},w=getWallet(),tx=getTx(),hr=tglStr(),bln=blnStr(),tot=getTotalWallet(),awal=syncAwalWithWallet(bln);
   document.getElementById("hdrName").textContent=acc.username;document.getElementById("hdrAvatar").src=acc.avatar||"";
   document.getElementById("lblAwal").textContent=rp(awal);
-  document.getElementById("lblBni").textContent=rp(w.BNI||0);document.getElementById("lblBca").textContent=rp(w.BCA||0);document.getElementById("lblCash").textContent=rp(w.Cash||0);
+  document.getElementById("lblBni").textContent=rp(w.BNI||0);
+  document.getElementById("lblBca").textContent=rp(w.BCA||0);
+  document.getElementById("lblMandiri").textContent=rp(w.Mandiri||0);
+  document.getElementById("lblOtherBank").textContent=rp(w["Other Bank"]||0);
+  document.getElementById("lblEwallet").textContent=rp(w["E-Wallet"]||0);
+  document.getElementById("lblCash").textContent=rp(w.Cash||0);
   const se=document.getElementById("saldoTotal");se.textContent=rp(tot);se.className="kas-big "+(tot>=0?"in":"out");
   document.getElementById("lblMasukHr").textContent=rp(tx.filter(x=>x.tgl===hr&&x.tipe==="income").reduce((a,b)=>a+b.nominal,0));
   document.getElementById("lblKeluarHr").textContent=rp(tx.filter(x=>x.tgl===hr&&x.tipe!=="income").reduce((a,b)=>a+b.nominal,0));
