@@ -366,17 +366,26 @@ body.theme-dark .notif-banner{background:#1e3a5f;border-color:#38bdf8;color:#e0f
   <div class="modal-card">
     <h3 style="margin:0 0 6px"><span id="lblMonthModal">Awal Bulan</span> <span id="modalBlnLbl"></span></h3>
     <div id="modalCarryInfo" class="small" style="margin-bottom:8px"></div>
-    <input id="modalAwalVal" type="number" step="any" placeholder="Saldo awal bulan ini (Rp)">
-    <input id="modalInVal" type="number" min="0" placeholder="Pemasukan awal bulan (Rp)">
-    <select id="modalInAkun">
-      <option value="BCA">BCA</option>
-      <option value="BNI">BNI</option>
-      <option value="Mandiri">Mandiri</option>
-      <option value="Other Bank">Other Bank</option>
-      <option value="E-Wallet">E-Wallet</option>
-      <option value="Cash">Cash</option>
-    </select>
-    <div class="row-flex" style="margin-top:12px">
+
+    <label style="margin-top:8px">BNI</label>
+    <input id="mAwalBni" type="number" step="any" placeholder="0">
+
+    <label style="margin-top:8px">BCA</label>
+    <input id="mAwalBca" type="number" step="any" placeholder="0">
+
+    <label style="margin-top:8px">Mandiri</label>
+    <input id="mAwalMandiri" type="number" step="any" placeholder="0">
+
+    <label style="margin-top:8px">Other Bank</label>
+    <input id="mAwalOtherBank" type="number" step="any" placeholder="0">
+
+    <label style="margin-top:8px">E-Wallet</label>
+    <input id="mAwalEwallet" type="number" step="any" placeholder="0">
+
+    <label style="margin-top:8px">Cash</label>
+    <input id="mAwalCash" type="number" step="any" placeholder="0">
+
+    <div class="row-flex" style="margin-top:14px">
       <button type="button" id="btnSaveMonth" onclick="simpanModalAwalBulan()">Simpan</button>
       <button type="button" id="btnLaterMonth" class="btn-sec" onclick="tutupModalBulan()">Nanti</button>
     </div>
@@ -433,7 +442,7 @@ const I18N={
     menu:"Menu",profTheme:"Profil & Warna Latar",save:"Simpan",saved:"Tersimpan.",
     dbSaldo:"Database Saldo",saveDb:"Simpan Saldo",
     syncBackup:"Sinkronisasi & Backup",syncCloud:"Sinkronkan Cloud",exportJson:"Export (.json)",logout:"Keluar",
-    monthModal:"Awal Bulan",monthAwalPh:"Saldo awal bulan ini (Rp)",monthInPh:"Pemasukan awal bulan (Rp)",later:"Nanti",
+    monthModal:"Awal Bulan",later:"Nanti",
     synced:"Tersinkron ",saving:"Menyimpan...",syncing:"Menyinkronkan...",localOnly:"Lokal saja",
     sessionExpired:"Sesi berakhir (30 menit).",wrongCreds:"Username atau password salah.",
     fillCreds:"Lengkapi username dan password.",minUser:"Username minimal 3 huruf.",minPass:"Password minimal 4 karakter.",
@@ -469,7 +478,7 @@ const I18N={
     menu:"Menu",profTheme:"Profile & Background",save:"Save",saved:"Saved.",
     dbSaldo:"Balance Database",saveDb:"Save Balance",
     syncBackup:"Sync & Backup",syncCloud:"Sync Cloud",exportJson:"Export (.json)",logout:"Sign Out",
-    monthModal:"Month Start",monthAwalPh:"Opening balance this month (Rp)",monthInPh:"Month opening income (Rp)",later:"Later",
+    monthModal:"Month Start",later:"Later",
     synced:"Synced ",saving:"Saving...",syncing:"Syncing...",localOnly:"Local only",
     sessionExpired:"Session expired (30 mins).",wrongCreds:"Incorrect username or password.",
     fillCreds:"Enter username and password.",minUser:"Username min 3 chars.",minPass:"Password min 4 chars.",
@@ -533,8 +542,6 @@ function applyLangUI(){
   document.getElementById("btnExportJson").textContent=t("exportJson");
   document.getElementById("btnLogout").textContent=t("logout");
   document.getElementById("lblMonthModal").textContent=t("monthModal");
-  document.getElementById("modalAwalVal").placeholder=t("monthAwalPh");
-  document.getElementById("modalInVal").placeholder=t("monthInPh");
   document.getElementById("btnSaveMonth").textContent=t("save");
   document.getElementById("btnLaterMonth").textContent=t("later");
   initAuth();
@@ -904,10 +911,15 @@ function openMonthModal(){
   const now=new Date(),bln=blnStr(now);
   if(!canEditMonthAwal(bln))return;
   const prevEnd=getPrevMonthEndingBalance(bln);
+  const w=getWallet();
   document.getElementById("modalBlnLbl").textContent=bln;
   document.getElementById("modalCarryInfo").textContent=prevEnd!==null ? (t("awalPrevCarry")+rp(prevEnd)) : "";
-  document.getElementById("modalAwalVal").value="";
-  document.getElementById("modalInVal").value="";
+  document.getElementById("mAwalBni").value=Number(w.BNI||0);
+  document.getElementById("mAwalBca").value=Number(w.BCA||0);
+  document.getElementById("mAwalMandiri").value=Number(w.Mandiri||0);
+  document.getElementById("mAwalOtherBank").value=Number(w["Other Bank"]||0);
+  document.getElementById("mAwalEwallet").value=Number(w["E-Wallet"]||0);
+  document.getElementById("mAwalCash").value=Number(w.Cash||0);
   document.getElementById("monthModal").classList.remove("hide");
 }
 
@@ -929,13 +941,24 @@ async function simpanModalAwalBulan(){
     return;
   }
   if(!confirm(t("confirmAwalLock")))return;
-  const inVal=Number(document.getElementById("modalInVal").value||0),inAkun=document.getElementById("modalInAkun").value,w=getWallet();
-  if(inVal>0){const tx=getTx();tx.unshift({id:Date.now(),tgl:tglStr(),tipe:"income",akun:inAkun,ket:"Pemasukan Awal Bulan",nominal:inVal,jam:jamStr(),receipt:null});saveJson(K_TX,tx);w[inAkun]=Number(w[inAkun]||0)+inVal;saveJson(K_WALLET,w);}
+
+  const newWallet={
+    BNI:Number(document.getElementById("mAwalBni").value||0),
+    BCA:Number(document.getElementById("mAwalBca").value||0),
+    Mandiri:Number(document.getElementById("mAwalMandiri").value||0),
+    "Other Bank":Number(document.getElementById("mAwalOtherBank").value||0),
+    "E-Wallet":Number(document.getElementById("mAwalEwallet").value||0),
+    Cash:Number(document.getElementById("mAwalCash").value||0)
+  };
+
+  saveJson(K_WALLET,newWallet);
+
+  const totalRekening = Object.values(newWallet).reduce((a,b)=>a+Number(b||0),0);
   const prevEnd=getPrevMonthEndingBalance(bln);
-  const addedAwal=Number(document.getElementById("modalAwalVal").value||0);
   const m=getAwalMap();
-  m[bln] = prevEnd!==null ? (prevEnd + addedAwal) : (addedAwal || getTotalWallet());
+  m[bln] = prevEnd!==null ? (prevEnd + totalRekening) : totalRekening;
   saveJson(K_AWAL,m);
+
   lockMonthAwal(bln);
   localStorage.setItem(K_PROMPT_BLN,bln);
   document.getElementById("monthModal").classList.add("hide");
@@ -1053,7 +1076,6 @@ function renderAll(){
 
 /* =========================================
    FINOTE — MULTI ACCOUNT DATA ISOLATION
-   Tempel sebelum kode startup paling bawah.
 ========================================= */
 
 const FN_ACCOUNTS_KEY = "fn_accounts_v8";
@@ -1088,7 +1110,6 @@ const fnSaveAccounts = accounts =>
 const fnUserKey = (key, username = fnGetActiveUser()) =>
   key + "__" + encodeURIComponent(fnNormalize(username));
 
-/* Migrasi akun lama dan database lama */
 (function fnMigrateLegacyData() {
   let accounts = fnGetAccounts();
 
@@ -1112,7 +1133,6 @@ const fnUserKey = (key, username = fnGetActiveUser()) =>
     }
   }
 
-  /* Pulihkan identitas sesi lama jika masih ada */
   if (
     sessionStorage.getItem(S_ACTIVE) === "1" &&
     !fnGetActiveUser()
@@ -1124,7 +1144,6 @@ const fnUserKey = (key, username = fnGetActiveUser()) =>
   }
 })();
 
-/* Isolasi semua penyimpanan berdasarkan akun aktif */
 Storage.prototype.getItem = function(key) {
   if (this === localStorage) {
     if (key === K_ACC) {
@@ -1153,7 +1172,6 @@ Storage.prototype.getItem = function(key) {
 
       if (scopedValue !== null) return scopedValue;
 
-      /* Migrasi data lama hanya untuk pemilik akun lama */
       const legacyOwner = fnRawGet.call(localStorage, "fn_legacy_owner_v8");
 
       if (legacyOwner && legacyOwner === active) {
@@ -1198,7 +1216,6 @@ Storage.prototype.setItem = function(key, value) {
         throw new Error("Username sudah digunakan akun lain.");
       }
 
-      /* Pindahkan database saat username diganti */
       if (active && active !== newUsername) {
         FN_USER_DATA_KEYS.forEach(dataKey => {
           const oldKey = fnUserKey(dataKey, active);
@@ -1234,7 +1251,6 @@ Storage.prototype.setItem = function(key, value) {
   return fnRawSet.call(this, key, value);
 };
 
-/* Registrasi akun baru */
 window.registerUser = async function() {
   const username = document.getElementById("regUser").value.trim();
   const password = document.getElementById("regPass").value;
@@ -1274,7 +1290,6 @@ window.registerUser = async function() {
   initAuth();
 };
 
-/* Login berdasarkan username masing-masing */
 window.loginUser = async function() {
   const username = document.getElementById("inUser").value.trim();
   const password = document.getElementById("inPass").value;
@@ -1299,7 +1314,6 @@ window.loginUser = async function() {
   sessionStorage.setItem(FN_ACTIVE_USER, normalized);
   fnRawSet.call(localStorage, "fn_last_user_v8", normalized);
 
-  /* Pastikan data lama dimigrasikan saat akun lama masuk */
   FN_USER_DATA_KEYS.forEach(key => {
     const scopedKey = fnUserKey(key, normalized);
     const exists = fnRawGet.call(localStorage, scopedKey);
@@ -1321,7 +1335,6 @@ window.loginUser = async function() {
   enterApp();
 };
 
-/* Informasi akun pada halaman login */
 window.initAuth = function() {
   const accounts = fnGetAccounts();
   const last = fnRawGet.call(localStorage, "fn_last_user_v8");
@@ -1335,7 +1348,6 @@ window.initAuth = function() {
   }
 };
 
-/* Logout */
 window.logoutUser = function(silent = false) {
   sessionStorage.removeItem(S_ACTIVE);
   sessionStorage.removeItem(S_LAST);
@@ -1355,7 +1367,6 @@ window.logoutUser = function(silent = false) {
   }
 };
 
-/* Validasi sesi harus memiliki akun aktif */
 window.hasValidSession = function() {
   if (sessionStorage.getItem(S_ACTIVE) !== "1") return false;
 
@@ -1381,7 +1392,6 @@ window.hasValidSession = function() {
   return true;
 };
 
-/* Backup hanya boleh memuat data, bukan mengganti identitas akun */
 const fnOriginalApplyState = window.applyState;
 
 window.applyState = function(data) {
@@ -1393,17 +1403,14 @@ window.applyState = function(data) {
   fnOriginalApplyState(safeData);
 };
 
-/* Cloud dimatikan agar database satu akun tidak menimpa akun lain */
 window.isCloudReady = function() {
   return false;
 };
 
-/* Tema dan bahasa awal */
 changeTheme("default");
 applyLangUI();
 initAuth();
 
-/* Pulihkan sesi akun yang sedang aktif */
 if (hasValidSession()) {
   changeTheme(localStorage.getItem(K_THEME) || "default");
   applyLangUI();
