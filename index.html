@@ -1051,6 +1051,365 @@ function renderAll(){
   document.getElementById("closeList").innerHTML=getCls().map(c=>'<div class="item"><div><b>'+c.tgl+'</b> <span class="badge-lock">'+t("locked")+'</span><div class="small">'+c.jam+' • '+t("masuk")+' '+rp(c.masuk||0)+'</div></div><div class="out">'+t("keluar")+' '+rp(c.keluar||0)+'</div></div>').join("")||'<div class="small">'+t("noClose")+'</div>';
 }
 
+/* =========================================
+   FINOTE — MULTI ACCOUNT DATA ISOLATION
+   Tempel sebelum kode startup paling bawah.
+========================================= */
+
+const FN_ACCOUNTS_KEY = "fn_accounts_v8";
+const FN_ACTIVE_USER = "fn_active_user_v8";
+
+const FN_USER_DATA_KEYS = [
+  K_TX, K_CLS, K_AWAL, K_AWAL_LOCK,
+  K_WALLET, K_THEME, K_PROMPT_BLN, K_LANG
+];
+
+const fnRawGet = Storage.prototype.getItem;
+const fnRawSet = Storage.prototype.setItem;
+const fnRawRemove = Storage.prototype.removeItem;
+
+const fnNormalize = username =>
+  String(username || "").trim().toLowerCase();
+
+const fnGetActiveUser = () =>
+  fnNormalize(sessionStorage.getItem(FN_ACTIVE_USER));
+
+const fnGetAccounts = () => {
+  try {
+    return JSON.parse(fnRawGet.call(localStorage, FN_ACCOUNTS_KEY) || "{}");
+  } catch {
+    return {};
+  }
+};
+
+const fnSaveAccounts = accounts =>
+  fnRawSet.call(localStorage, FN_ACCOUNTS_KEY, JSON.stringify(accounts));
+
+const fnUserKey = (key, username = fnGetActiveUser()) =>
+  key + "__" + encodeURIComponent(fnNormalize(username));
+
+/* Migrasi akun lama dan database lama */
+(function fnMigrateLegacyData() {
+  let accounts = fnGetAccounts();
+
+  let legacyAccount = null;
+  try {
+    legacyAccount = JSON.parse(fnRawGet.call(localStorage, K_ACC) || "null");
+  } catch {}
+
+  if (legacyAccount && legacyAccount.username) {
+    const oldUsername = fnNormalize(legacyAccount.username);
+
+    if (!accounts[oldUsername]) {
+      accounts[oldUsername] = legacyAccount;
+      fnSaveAccounts(accounts);
+
+      fnRawSet.call(
+        localStorage,
+        "fn_legacy_owner_v8",
+        oldUsername
+      );
+    }
+  }
+
+  /* Pulihkan identitas sesi lama jika masih ada */
+  if (
+    sessionStorage.getItem(S_ACTIVE) === "1" &&
+    !fnGetActiveUser()
+  ) {
+    const lastUser = fnRawGet.call(localStorage, "fn_legacy_owner_v8");
+    if (lastUser) {
+      sessionStorage.setItem(FN_ACTIVE_USER, lastUser);
+    }
+  }
+})();
+
+/* Isolasi semua penyimpanan berdasarkan akun aktif */
+Storage.prototype.getItem = function(key) {
+  if (this === localStorage) {
+    if (key === K_ACC) {
+      const accounts = fnGetAccounts();
+      const active = fnGetActiveUser();
+
+      if (active && accounts[active]) {
+        return JSON.stringify(accounts[active]);
+      }
+
+      const last = fnRawGet.call(localStorage, "fn_last_user_v8");
+      if (last && accounts[last]) {
+        return JSON.stringify(accounts[last]);
+      }
+
+      const first = Object.keys(accounts)[0];
+      return first ? JSON.stringify(accounts[first]) : null;
+    }
+
+    if (FN_USER_DATA_KEYS.includes(key)) {
+      const active = fnGetActiveUser();
+      if (!active) return null;
+
+      const scopedKey = fnUserKey(key, active);
+      const scopedValue = fnRawGet.call(localStorage, scopedKey);
+
+      if (scopedValue !== null) return scopedValue;
+
+      /* Migrasi data lama hanya untuk pemilik akun lama */
+      const legacyOwner = fnRawGet.call(localStorage, "fn_legacy_owner_v8");
+
+      if (legacyOwner && legacyOwner === active) {
+        const legacyValue = fnRawGet.call(localStorage, key);
+
+        if (legacyValue !== null) {
+          fnRawSet.call(localStorage, scopedKey, legacyValue);
+          return legacyValue;
+        }
+      }
+
+      return null;
+    }
+  }
+
+  return fnRawGet.call(this, key);
+};
+
+Storage.prototype.setItem = function(key, value) {
+  if (this === localStorage) {
+    if (key === K_ACC) {
+      let account;
+
+      try {
+        account = JSON.parse(value);
+      } catch {
+        return;
+      }
+
+      if (!account || !account.username) return;
+
+      const accounts = fnGetAccounts();
+      const active = fnGetActiveUser();
+      const oldUsername = active || fnNormalize(account.username);
+      const newUsername = fnNormalize(account.username);
+
+      if (
+        newUsername !== oldUsername &&
+        accounts[newUsername] &&
+        newUsername !== oldUsername
+      ) {
+        throw new Error("Username sudah digunakan akun lain.");
+      }
+
+      /* Pindahkan database saat username diganti */
+      if (active && active !== newUsername) {
+        FN_USER_DATA_KEYS.forEach(dataKey => {
+          const oldKey = fnUserKey(dataKey, active);
+          const newKey = fnUserKey(dataKey, newUsername);
+          const existing = fnRawGet.call(localStorage, oldKey);
+
+          if (existing !== null) {
+            fnRawSet.call(localStorage, newKey, existing);
+            fnRawRemove.call(localStorage, oldKey);
+          }
+        });
+
+        sessionStorage.setItem(FN_ACTIVE_USER, newUsername);
+      }
+
+      delete accounts[oldUsername];
+      accounts[newUsername] = account;
+
+      fnSaveAccounts(accounts);
+      fnRawSet.call(localStorage, "fn_last_user_v8", newUsername);
+      return;
+    }
+
+    if (FN_USER_DATA_KEYS.includes(key)) {
+      const active = fnGetActiveUser();
+      if (!active) return;
+
+      fnRawSet.call(localStorage, fnUserKey(key, active), value);
+      return;
+    }
+  }
+
+  return fnRawSet.call(this, key, value);
+};
+
+/* Registrasi akun baru */
+window.registerUser = async function() {
+  const username = document.getElementById("regUser").value.trim();
+  const password = document.getElementById("regPass").value;
+  const error = document.getElementById("regErr");
+
+  if (username.length < 3) {
+    error.textContent = t("minUser");
+    return;
+  }
+
+  if (password.length < 4) {
+    error.textContent = t("minPass");
+    return;
+  }
+
+  const normalized = fnNormalize(username);
+  const accounts = fnGetAccounts();
+
+  if (accounts[normalized]) {
+    error.textContent = "Username sudah digunakan.";
+    return;
+  }
+
+  accounts[normalized] = {
+    username,
+    password,
+    avatar: ""
+  };
+
+  fnSaveAccounts(accounts);
+  fnRawSet.call(localStorage, "fn_last_user_v8", normalized);
+
+  error.textContent = "";
+  setAuthMode("login");
+  document.getElementById("inUser").value = username;
+  document.getElementById("inPass").value = "";
+  initAuth();
+};
+
+/* Login berdasarkan username masing-masing */
+window.loginUser = async function() {
+  const username = document.getElementById("inUser").value.trim();
+  const password = document.getElementById("inPass").value;
+  const error = document.getElementById("authErr");
+
+  error.textContent = "";
+
+  if (!username || !password) {
+    error.textContent = t("fillCreds");
+    return;
+  }
+
+  const normalized = fnNormalize(username);
+  const accounts = fnGetAccounts();
+  const account = accounts[normalized];
+
+  if (!account || account.password !== password) {
+    error.textContent = t("wrongCreds");
+    return;
+  }
+
+  sessionStorage.setItem(FN_ACTIVE_USER, normalized);
+  fnRawSet.call(localStorage, "fn_last_user_v8", normalized);
+
+  /* Pastikan data lama dimigrasikan saat akun lama masuk */
+  FN_USER_DATA_KEYS.forEach(key => {
+    const scopedKey = fnUserKey(key, normalized);
+    const exists = fnRawGet.call(localStorage, scopedKey);
+
+    if (exists === null) {
+      const legacyOwner = fnRawGet.call(localStorage, "fn_legacy_owner_v8");
+
+      if (legacyOwner === normalized) {
+        const legacyValue = fnRawGet.call(localStorage, key);
+        if (legacyValue !== null) {
+          fnRawSet.call(localStorage, scopedKey, legacyValue);
+        }
+      }
+    }
+  });
+
+  changeTheme(localStorage.getItem(K_THEME) || "default");
+  applyLangUI();
+  enterApp();
+};
+
+/* Informasi akun pada halaman login */
+window.initAuth = function() {
+  const accounts = fnGetAccounts();
+  const last = fnRawGet.call(localStorage, "fn_last_user_v8");
+  const account = last ? accounts[last] : null;
+
+  if (account) {
+    document.getElementById("loginInfo").textContent =
+      t("accPrefix") + account.username;
+  } else {
+    document.getElementById("loginInfo").textContent = t("noAcc");
+  }
+};
+
+/* Logout */
+window.logoutUser = function(silent = false) {
+  sessionStorage.removeItem(S_ACTIVE);
+  sessionStorage.removeItem(S_LAST);
+  sessionStorage.removeItem(FN_ACTIVE_USER);
+
+  closeDrawer();
+
+  document.getElementById("appBox").classList.add("hide");
+  document.getElementById("authBox").classList.remove("hide");
+  document.getElementById("inPass").value = "";
+
+  initAuth();
+
+  if (silent) {
+    document.getElementById("authErr").textContent =
+      t("sessionExpired");
+  }
+};
+
+/* Validasi sesi harus memiliki akun aktif */
+window.hasValidSession = function() {
+  if (sessionStorage.getItem(S_ACTIVE) !== "1") return false;
+
+  const active = fnGetActiveUser();
+  const accounts = fnGetAccounts();
+
+  if (!active || !accounts[active]) {
+    sessionStorage.removeItem(S_ACTIVE);
+    sessionStorage.removeItem(S_LAST);
+    sessionStorage.removeItem(FN_ACTIVE_USER);
+    return false;
+  }
+
+  const last = Number(sessionStorage.getItem(S_LAST) || 0);
+
+  if (!last || Date.now() - last > IDLE_LIMIT_MS) {
+    sessionStorage.removeItem(S_ACTIVE);
+    sessionStorage.removeItem(S_LAST);
+    sessionStorage.removeItem(FN_ACTIVE_USER);
+    return false;
+  }
+
+  return true;
+};
+
+/* Backup hanya boleh memuat data, bukan mengganti identitas akun */
+const fnOriginalApplyState = window.applyState;
+
+window.applyState = function(data) {
+  if (!data || typeof data !== "object") return;
+
+  const safeData = { ...data };
+  delete safeData.acc;
+
+  fnOriginalApplyState(safeData);
+};
+
+/* Cloud dimatikan agar database satu akun tidak menimpa akun lain */
+window.isCloudReady = function() {
+  return false;
+};
+
+/* Tema dan bahasa awal */
+changeTheme("default");
+applyLangUI();
+initAuth();
+
+/* Pulihkan sesi akun yang sedang aktif */
+if (hasValidSession()) {
+  changeTheme(localStorage.getItem(K_THEME) || "default");
+  applyLangUI();
+  enterApp();
+}
+
 changeTheme(localStorage.getItem(K_THEME)||"default");
 applyLangUI();
 if(isCloudReady()){
